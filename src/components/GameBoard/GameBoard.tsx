@@ -1,41 +1,78 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { render } from '../../utils/render';
-import { GameState, Orientation } from '../../data/types';
-import { cards, cardsById, startGameCardId } from '../../data/cards';
+import { GameState, Zone } from '../../data/types';
 import styles from './GameBoard.module.css';
-import { fitNextCard, getAroundCellIds, getCellId } from '../../utils/logic';
+import {
+  CellCoords,
+  CellId,
+  fitNextCard,
+  generateCardPool,
+  getAroundCellIds,
+  getCellId,
+  instantiateCard,
+  rotateCard,
+} from '../../utils/logic';
+import { cards, cardsById } from '../../data/cards';
 
 const WIDTH = 800;
 const HEIGHT = 600;
+const SHOW_ALL_CARDS = false;
+
+const initialCoords: CellCoords = {
+  col: 0,
+  row: 0,
+};
+
+function getAllCards(globalRotation: number): [CellId, Zone][] {
+  if (!SHOW_ALL_CARDS) {
+    return [];
+  }
+
+  return cards.map((cardInfo, i): [CellId, Zone] => {
+    const coordinates = {
+      col: i % 6,
+      row: Math.floor(i / 6),
+    };
+
+    const card = instantiateCard(cardsById[cardInfo.id], false);
+    for (let i = 0; i < globalRotation; i++) {
+      rotateCard(card);
+    }
+
+    return [
+      getCellId(coordinates),
+      {
+        cardTypeId: cardInfo.id,
+        card,
+        coordinates,
+      },
+    ];
+  });
+}
 
 export function GameBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameState = useMemo<GameState>(
-    () => ({
-      zones: new Map([
+  const [globalRotation, setGlobalRotation] = useState(0);
+  const gameState = useMemo<GameState>(() => {
+    const { initialCard, cardPool } = generateCardPool();
+
+    return {
+      zones: new Map<CellId, Zone>([
         [
-          getCellId(0, 0),
+          getCellId(initialCoords),
           {
-            cardId: startGameCardId,
-            rotatedCard: cardsById[startGameCardId],
-            orientation: Orientation.NORTH,
-            coordinates: { col: 0, row: 0 },
+            cardTypeId: initialCard.cardTypeId,
+            card: initialCard,
+            coordinates: initialCoords,
           },
-          // ...cards.map(
-          //   (card, i): Zone => ({
-          //     cardId: card.id,
-          //     orientation: Orientation.NORTH,
-          //     coordinates: [i % 6, Math.floor(i / 6)],
-          //   })
-          // ),
         ],
+        ...getAllCards(globalRotation % 4),
       ]),
       potentialZones: new Set(getAroundCellIds({ col: 0, row: 0 })),
-      cardPool: ['card:5', 'card:6', 'card:10'],
-    }),
-    []
-  );
+      cardPool,
+    };
+  }, [globalRotation]);
 
   function renderBoard() {
     const ctx = canvasRef.current!.getContext('2d')!;
@@ -43,7 +80,7 @@ export function GameBoard() {
     console.log(gameState);
   }
 
-  useEffect(renderBoard, []);
+  useEffect(renderBoard, [gameState]);
 
   return (
     <div className={styles.root}>
@@ -59,11 +96,22 @@ export function GameBoard() {
           onClick={(event) => {
             event.preventDefault();
 
+            console.time('find place');
             fitNextCard(gameState);
+            console.timeEnd('find place');
             renderBoard();
           }}
         >
           Put Card
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            setGlobalRotation(globalRotation + 1);
+          }}
+        >
+          Rotate
         </button>
       </div>
     </div>

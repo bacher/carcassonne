@@ -1,5 +1,12 @@
 import type { GameState, Zone } from '../data/types';
-import { Building, CardInfo, cardsById, SideType } from '../data/cards';
+import {
+  Building,
+  CardTypeInfo,
+  cardsById,
+  SideType,
+  InGameCard,
+} from '../data/cards';
+import { cellIdToCoords } from './logic';
 
 const CARD_SIZE = 50;
 
@@ -41,12 +48,21 @@ export function render(
       y: zone.coordinates.row * CELL_SIZE,
     };
 
-    const rotatedCardInfo = zone.rotatedCard;
-
     drawCard(ctx, {
       topLeft,
-      cardInfo: rotatedCardInfo,
+      card: zone.card,
     });
+  }
+
+  for (const potentialCellId of Array.from(state.potentialZones.values())) {
+    const coords = cellIdToCoords(potentialCellId);
+
+    const topLeft = {
+      x: coords.col * CELL_SIZE,
+      y: coords.row * CELL_SIZE,
+    };
+
+    drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, '#acf');
   }
 
   ctx.restore();
@@ -63,7 +79,7 @@ export function render(
     );
     drawCard(ctx, {
       topLeft: { x: width - CARD_SIZE - 20, y: 20 },
-      cardInfo: cardsById[lastCard],
+      card: lastCard,
     });
     ctx.restore();
   }
@@ -73,13 +89,13 @@ function drawCard(
   ctx: CanvasRenderingContext2D,
   {
     topLeft,
-    cardInfo,
+    card,
   }: {
     topLeft: Point;
-    cardInfo: CardInfo;
+    card: InGameCard;
   }
 ): void {
-  const { sides, connects } = cardInfo;
+  const { sides, connects } = card;
 
   const center = {
     x: topLeft.x + CARD_SIZE / 2,
@@ -193,7 +209,7 @@ function drawCard(
     }
   }
 
-  if (cardInfo.building === Building.Monastery) {
+  if (card.building === Building.Monastery) {
     drawText(ctx, center, 'M', '#000');
   }
 }
@@ -212,8 +228,8 @@ function getSideLine({ x, y }: Point, side: number): [Point, Point] {
       ];
     case 2:
       return [
-        { x, y: y + CARD_SIZE },
         { x: x + CARD_SIZE, y: y + CARD_SIZE },
+        { x, y: y + CARD_SIZE },
       ];
     case 3:
       return [

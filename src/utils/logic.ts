@@ -1,67 +1,29 @@
-import { CardInfo, cardsById } from '../data/cards';
-import { GameState, Orientation, Zone } from '../data/types';
+import { shuffle } from 'lodash';
 
-export function rotateCardInfo(
-  cardInfo: CardInfo,
-  orientation: Orientation
-): CardInfo {
-  if (orientation === Orientation.NORTH) {
-    return cardInfo;
-  }
+import { cards, cardsById, CardTypeInfo, InGameCard } from '../data/cards';
+import { GameState, Zone } from '../data/types';
 
-  switch (orientation) {
-    case Orientation.EAST:
-      return {
-        ...cardInfo,
-        sides: [
-          cardInfo.sides[3],
-          cardInfo.sides[0],
-          cardInfo.sides[1],
-          cardInfo.sides[2],
-        ],
-        connects: [
-          cardInfo.connects[3],
-          cardInfo.connects[0],
-          cardInfo.connects[1],
-          cardInfo.connects[2],
-        ],
-      };
-    case Orientation.SOUTH:
-      return {
-        ...cardInfo,
-        sides: [
-          cardInfo.sides[2],
-          cardInfo.sides[3],
-          cardInfo.sides[0],
-          cardInfo.sides[1],
-        ],
-        connects: [
-          cardInfo.connects[2],
-          cardInfo.connects[3],
-          cardInfo.connects[0],
-          cardInfo.connects[1],
-        ],
-      };
-    case Orientation.WEST:
-      return {
-        ...cardInfo,
-        sides: [
-          cardInfo.sides[1],
-          cardInfo.sides[2],
-          cardInfo.sides[3],
-          cardInfo.sides[0],
-        ],
-        connects: [
-          cardInfo.connects[1],
-          cardInfo.connects[2],
-          cardInfo.connects[3],
-          cardInfo.connects[0],
-        ],
-      };
-  }
+export function instantiateCard(card: CardTypeInfo, isPrimeTown: boolean) {
+  return {
+    cardTypeId: card.id,
+    sides: card.sides,
+    connects: card.connects,
+    building: card.building,
+    isPrimeTown,
+  };
 }
 
-type CellId = number;
+export function rotateCard(card: InGameCard): void {
+  card.sides = [card.sides[3], card.sides[0], card.sides[1], card.sides[2]];
+  card.connects = [
+    card.connects[3],
+    card.connects[0],
+    card.connects[1],
+    card.connects[2],
+  ];
+}
+
+export type CellId = number;
 
 export type CellCoords = {
   col: number;
@@ -76,10 +38,10 @@ export function getAroundCellIds({
   row: number;
 }): CellId[] {
   return [
-    getCellId(col, row - 1),
-    getCellId(col + 1, row),
-    getCellId(col, row + 1),
-    getCellId(col - 1, row),
+    getCellId({ col, row: row - 1 }),
+    getCellId({ col: col + 1, row }),
+    getCellId({ col, row: row + 1 }),
+    getCellId({ col: col - 1, row }),
   ];
 }
 
@@ -93,7 +55,7 @@ window.cellIdToCoords = cellIdToCoords;
 const BOUND = 2 ** 12;
 const HALF_BOUND = BOUND / 2;
 
-export function getCellId(col: number, row: number): CellId {
+export function getCellId({ row, col }: CellCoords): CellId {
   return ((row + HALF_BOUND) << 12) + col + HALF_BOUND;
 }
 
@@ -105,7 +67,7 @@ export function cellIdToCoords(cellId: CellId): CellCoords {
 }
 
 export function putCard(gameState: GameState, card: Zone): void {
-  const cellId = getCellId(card.coordinates.col, card.coordinates.row);
+  const cellId = getCellId(card.coordinates);
 
   gameState.potentialZones.delete(cellId);
 
@@ -120,22 +82,20 @@ export function putCard(gameState: GameState, card: Zone): void {
 }
 
 export function fitNextCard(gameState: GameState) {
-  const nextCard = gameState.cardPool[gameState.cardPool.length - 1];
+  const currentCard = gameState.cardPool[gameState.cardPool.length - 1];
 
-  if (!nextCard) {
+  if (!currentCard) {
     window.alert('Empty pool');
     throw new Error();
   }
 
-  const nextCardInfo = cardsById[nextCard];
+  const cardInfo = cardsById[currentCard.cardTypeId];
 
   const cells = Array.from(gameState.potentialZones.values()).map(
     cellIdToCoords
   );
 
-  for (let i = 0; i < nextCardInfo.maxOrientation; i++) {
-    const cardInfo = rotateCardInfo(nextCardInfo, i);
-
+  for (let i = 0; i < cardInfo.maxOrientation; i++) {
     for (const cell of cells) {
       const [northId, eastId, southId, westId] = getAroundCellIds(cell);
       const northCard = gameState.zones.get(northId);
@@ -144,22 +104,43 @@ export function fitNextCard(gameState: GameState) {
       const westCard = gameState.zones.get(westId);
 
       if (
-        (!northCard || cardInfo.sides[0] === northCard.rotatedCard.sides[2]) &&
-        (!eastCard || cardInfo.sides[1] === eastCard.rotatedCard.sides[3]) &&
-        (!southCard || cardInfo.sides[2] === southCard.rotatedCard.sides[0]) &&
-        (!westCard || cardInfo.sides[3] === westCard.rotatedCard.sides[1])
+        (!northCard || currentCard.sides[0] === northCard.card.sides[2]) &&
+        (!eastCard || currentCard.sides[1] === eastCard.card.sides[3]) &&
+        (!southCard || currentCard.sides[2] === southCard.card.sides[0]) &&
+        (!westCard || currentCard.sides[3] === westCard.card.sides[1])
       ) {
         putCard(gameState, {
-          cardId: nextCardInfo.id,
-          rotatedCard: cardInfo,
-          orientation: i,
+          cardTypeId: cardInfo.id,
+          card: currentCard,
           coordinates: cell,
         });
         gameState.cardPool.pop();
         return;
       }
     }
+
+    rotateCard(currentCard);
   }
 
   window.alert("Can't find the place");
+}
+
+export function generateCardPool(): {
+  initialCard: InGameCard;
+  cardPool: InGameCard[];
+} {
+  const pool: InGameCard[] = [];
+
+  for (const card of Array.from(cards)) {
+    for (let i = 0; i < card.initialInDeckCount; i++) {
+      pool.push(instantiateCard(card, i < (card.primeTownCount ?? 0)));
+    }
+  }
+
+  const [initialCard, ...cardPool] = pool;
+
+  return {
+    initialCard,
+    cardPool: shuffle(cardPool),
+  };
 }

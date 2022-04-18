@@ -77,13 +77,14 @@ export function GameBoard() {
     };
   }, [globalRotation]);
 
+  console.log(gameState);
+
   function renderBoard() {
     const ctx = canvasRef.current!.getContext('2d')!;
     render(ctx, gameState, {
       size: { width: WIDTH, height: HEIGHT },
       viewport: viewport.pos,
     });
-    console.log(gameState);
   }
 
   useEffect(renderBoard, [gameState]);
@@ -137,9 +138,18 @@ export function GameBoard() {
             event.preventDefault();
 
             console.time('find place');
-            fitNextCard(gameState);
+            const success = fitNextCard(gameState);
             console.timeEnd('find place');
+
+            if (!success) {
+              if (window.confirm("Can't be placed, try next?")) {
+                gameState.cardPool.pop();
+              }
+              return;
+            }
+
             renderBoard();
+            console.log(gameState);
           }}
         >
           Put Card

@@ -81,7 +81,7 @@ export function putCard(gameState: GameState, card: Zone): void {
   }
 }
 
-export function fitNextCard(gameState: GameState) {
+export function fitNextCard(gameState: GameState): boolean {
   const currentCard = gameState.cardPool[gameState.cardPool.length - 1];
 
   if (!currentCard) {
@@ -115,14 +115,14 @@ export function fitNextCard(gameState: GameState) {
           coordinates: cell,
         });
         gameState.cardPool.pop();
-        return;
+        return true;
       }
     }
 
     rotateCard(currentCard);
   }
 
-  window.alert("Can't find the place");
+  return false;
 }
 
 export function generateCardPool(): {

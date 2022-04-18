@@ -62,7 +62,7 @@ export function render(
       y: coords.row * CELL_SIZE,
     };
 
-    drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, '#acf');
+    drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, '#cdf');
   }
 
   ctx.restore();

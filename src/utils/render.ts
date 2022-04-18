@@ -33,12 +33,12 @@ const GRID_SIZE = 25;
 export function render(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  { width, height }: Size
+  { size: { width, height }, viewport }: { size: Size; viewport: Point }
 ) {
   ctx.clearRect(0, 0, width, height);
 
   ctx.save();
-  ctx.translate(width / 2, height / 2);
+  ctx.translate(width / 2 + viewport.x, height / 2 + viewport.y);
 
   drawGrid(ctx);
 

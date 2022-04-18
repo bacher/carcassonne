@@ -54,6 +54,9 @@ function getAllCards(globalRotation: number): [CellId, Zone][] {
 export function GameBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [globalRotation, setGlobalRotation] = useState(0);
+  const [isDragging, setDragging] = useState(false);
+  const dragStartPos = useMemo(() => ({ x: 0, y: 0 }), []);
+  const viewport = useMemo(() => ({ pos: { x: 0, y: 0 } }), []);
   const gameState = useMemo<GameState>(() => {
     const { initialCard, cardPool } = generateCardPool();
 
@@ -76,20 +79,57 @@ export function GameBoard() {
 
   function renderBoard() {
     const ctx = canvasRef.current!.getContext('2d')!;
-    render(ctx, gameState, { width: WIDTH, height: HEIGHT });
+    render(ctx, gameState, {
+      size: { width: WIDTH, height: HEIGHT },
+      viewport: viewport.pos,
+    });
     console.log(gameState);
   }
 
   useEffect(renderBoard, [gameState]);
 
+  useEffect(() => {
+    function onMouseMove(event: MouseEvent) {
+      viewport.pos.x = event.screenX - dragStartPos.x;
+      viewport.pos.y = event.screenY - dragStartPos.y;
+      renderBoard();
+    }
+
+    function onMouseUp(event: MouseEvent) {
+      viewport.pos.x = event.screenX - dragStartPos.x;
+      viewport.pos.y = event.screenY - dragStartPos.y;
+      renderBoard();
+      setDragging(false);
+    }
+
+    if (isDragging) {
+      window.addEventListener('mousemove', onMouseMove, { passive: true });
+      window.addEventListener('mouseup', onMouseUp, { passive: true });
+
+      return () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+    }
+  }, [isDragging]);
+
   return (
     <div className={styles.root}>
-      <canvas
-        ref={canvasRef}
-        className={styles.canvas}
-        width={WIDTH}
-        height={HEIGHT}
-      />
+      <div
+        onMouseDown={(event) => {
+          event.preventDefault();
+          dragStartPos.x = event.screenX;
+          dragStartPos.y = event.screenY;
+          setDragging(true);
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          className={styles.canvas}
+          width={WIDTH}
+          height={HEIGHT}
+        />
+      </div>
       <div>
         <button
           type="button"

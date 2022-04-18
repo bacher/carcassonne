@@ -1,3 +1,7 @@
+.root {
+  display: flex;
+}
+
 .canvas {
   width: 800px;
   height: 600px;

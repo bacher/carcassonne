@@ -1,3 +1,5 @@
+import { CardId } from './types';
+
 export const enum Building {
   Monastery = 1,
 }
@@ -8,102 +10,106 @@ export const enum SideType {
   ROAD,
 }
 
-export type CardInfo = {
-  id: number;
+type CardInfoPartial = {
+  id: CardId;
   sides: [SideType, SideType, SideType, SideType];
   connects: [number, number, number, number];
   building?: Building;
 };
 
-export const cards: CardInfo[] = [
+export type CardInfo = CardInfoPartial & {
+  maxOrientation: number;
+};
+
+export const cards: CardInfoPartial[] = [
   {
-    id: 1,
+    id: 'card:1',
     sides: [SideType.TOWN, SideType.ROAD, SideType.GROUND, SideType.ROAD],
     connects: [0, 1, 0, 1],
   },
   {
-    id: 2,
+    id: 'card:2',
     sides: [SideType.GROUND, SideType.ROAD, SideType.GROUND, SideType.ROAD],
     connects: [0, 1, 0, 1],
   },
   {
-    id: 3,
+    id: 'card:3',
     sides: [SideType.ROAD, SideType.ROAD, SideType.GROUND, SideType.GROUND],
     connects: [1, 1, 0, 0],
   },
   {
-    id: 4,
+    id: 'card:4',
     sides: [SideType.GROUND, SideType.ROAD, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 0, 0],
   },
   {
-    id: 10,
+    id: 'card:5',
     sides: [SideType.TOWN, SideType.ROAD, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 0, 0],
   },
   {
-    id: 17,
+    id: 'card:6',
     sides: [SideType.ROAD, SideType.ROAD, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 0, 0],
   },
   {
-    id: 18,
+    id: 'card:7',
     sides: [SideType.TOWN, SideType.GROUND, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 1, 1],
   },
   {
-    id: 19,
+    id: 'card:8',
     sides: [SideType.TOWN, SideType.ROAD, SideType.ROAD, SideType.GROUND],
     connects: [0, 1, 1, 0],
   },
   {
-    id: 7,
+    id: 'card:9',
     sides: [SideType.TOWN, SideType.GROUND, SideType.GROUND, SideType.GROUND],
     connects: [0, 0, 0, 0],
   },
   {
-    id: 8,
+    id: 'card:10',
     sides: [SideType.TOWN, SideType.GROUND, SideType.TOWN, SideType.GROUND],
     connects: [0, 0, 0, 0],
   },
   {
-    id: 16,
+    id: 'card:11',
     sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
     connects: [1, 1, 0, 0],
   },
   {
-    id: 15,
+    id: 'card:12',
     sides: [SideType.TOWN, SideType.TOWN, SideType.ROAD, SideType.ROAD],
     connects: [1, 1, 2, 2],
   },
   {
-    id: 9,
+    id: 'card:13',
     sides: [SideType.TOWN, SideType.GROUND, SideType.TOWN, SideType.GROUND],
     connects: [1, 0, 1, 0],
   },
   {
-    id: 12,
+    id: 'card:14',
     sides: [SideType.GROUND, SideType.TOWN, SideType.TOWN, SideType.TOWN],
     connects: [0, 1, 1, 1],
   },
   {
-    id: 13,
+    id: 'card:15',
     sides: [SideType.ROAD, SideType.TOWN, SideType.TOWN, SideType.TOWN],
     connects: [0, 1, 1, 1],
   },
   {
-    id: 14,
+    id: 'card:16',
     sides: [SideType.TOWN, SideType.TOWN, SideType.TOWN, SideType.TOWN],
     connects: [1, 1, 1, 1],
   },
   {
-    id: 5,
+    id: 'card:17',
     sides: [SideType.GROUND, SideType.GROUND, SideType.GROUND, SideType.GROUND],
     building: Building.Monastery,
     connects: [0, 0, 0, 0],
   },
   {
-    id: 6,
+    id: 'card:18',
     sides: [SideType.ROAD, SideType.GROUND, SideType.GROUND, SideType.GROUND],
     building: Building.Monastery,
     connects: [0, 0, 0, 0],
@@ -111,8 +117,30 @@ export const cards: CardInfo[] = [
 ];
 
 export const cardsById = cards.reduce((acc, card) => {
-  acc[card.id] = card;
+  let maxOrientation = 4;
+
+  if (
+    card.sides[0] === card.sides[1] &&
+    card.sides[0] === card.sides[2] &&
+    card.sides[0] === card.sides[3] &&
+    card.connects[0] === card.connects[1] &&
+    card.connects[0] === card.connects[2] &&
+    card.connects[0] === card.connects[3]
+  ) {
+    maxOrientation = 1;
+  }
+
+  if (
+    card.sides[0] === card.sides[2] &&
+    card.sides[1] === card.sides[3] &&
+    card.connects[0] === card.connects[2] &&
+    card.connects[1] === card.connects[3]
+  ) {
+    maxOrientation = 2;
+  }
+
+  acc[card.id] = { ...card, maxOrientation };
   return acc;
-}, {} as Record<number, CardInfo>);
+}, {} as Record<CardId, CardInfo>);
 
 export const startGameCardId = cards[0].id;

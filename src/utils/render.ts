@@ -1,6 +1,5 @@
-import type { GameState } from '../data/types';
-import { Building, cardsById, SideType } from '../data/cards';
-import { rotateCardInfo } from './logic';
+import type { GameState, Zone } from '../data/types';
+import { Building, CardInfo, cardsById, SideType } from '../data/cards';
 
 const CARD_SIZE = 50;
 
@@ -24,167 +23,179 @@ const FIELD_STYLE = '#9cffad';
 
 const GRID_SIZE = 25;
 
-export function render(ctx: CanvasRenderingContext2D, state: GameState) {
+export function render(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  { width, height }: Size
+) {
+  ctx.clearRect(0, 0, width, height);
+
   ctx.save();
-  ctx.translate(400, 300);
+  ctx.translate(width / 2, height / 2);
 
   drawGrid(ctx);
 
-  for (const zone of state.zones) {
+  for (const zone of state.zones.values() as unknown as Zone[]) {
     const topLeft = {
-      x: zone.coordinates[0] * CELL_SIZE,
-      y: zone.coordinates[1] * CELL_SIZE,
+      x: zone.coordinates.col * CELL_SIZE,
+      y: zone.coordinates.row * CELL_SIZE,
     };
 
-    const center = {
-      x: topLeft.x + CARD_SIZE / 2,
-      y: topLeft.y + CARD_SIZE / 2,
-    };
+    const rotatedCardInfo = zone.rotatedCard;
 
-    const cardInfo = cardsById[zone.cardId];
-
-    if (!cardInfo) {
-      throw Error();
-    }
-
-    const rotatedCardInfo = rotateCardInfo(cardInfo, zone.orientation);
-    const { sides, connects } = rotatedCardInfo;
-
-    drawRect(
-      ctx,
+    drawCard(ctx, {
       topLeft,
-      { width: CARD_SIZE, height: CARD_SIZE },
-      FIELD_STYLE
-    );
-
-    // for (let i = 0; i < sides.length; i++) {
-    //   const side = sides[i];
-    //   const [p1, p2] = getSideLine(topLeft, i);
-    //
-    //   switch (side) {
-    //     case SideType.GROUND:
-    //     case SideType.ROAD: {
-    //       drawLine(ctx, p1, p2, '#0f0');
-    //     }
-    //   }
-    // }
-
-    // Draw roads and fields
-    for (let i = 0; i < sides.length; i++) {
-      const side = sides[i];
-
-      switch (side) {
-        case SideType.GROUND:
-        case SideType.ROAD: {
-          if (side === SideType.ROAD) {
-            const roadStart = getSideCenter(topLeft, i);
-            const connect = connects[i];
-
-            if (connect) {
-              for (let j = i + 1; j < connects.length; j++) {
-                if (i !== j && connect === connects[j]) {
-                  drawLine(ctx, roadStart, getSideCenter(topLeft, j), '#000');
-                }
-              }
-            } else {
-              drawLine(
-                ctx,
-                roadStart,
-                getSideOffsetCenter(topLeft, i, CARD_SIZE / 3),
-                '#000'
-              );
-            }
-          }
-          break;
-        }
-      }
-    }
-
-    const roadsCount = sides.filter((side) => side === SideType.ROAD).length;
-
-    if (roadsCount >= 3) {
-      drawCircle(
-        ctx,
-        { x: topLeft.x + CARD_SIZE / 2, y: topLeft.y + CARD_SIZE / 2 },
-        CARD_SIZE / 6,
-        '#aaa'
-      );
-    }
-
-    // Draw towns
-    const townsCount = sides.filter((side) => side === SideType.TOWN).length;
-
-    if (townsCount === 4) {
-      drawRect(
-        ctx,
-        topLeft,
-        { width: CARD_SIZE, height: CARD_SIZE },
-        TOWN_STYLE
-      );
-    } else if (townsCount === 3) {
-      const polygon = [];
-
-      for (let i = 0; i < sides.length; i++) {
-        const side = sides[i];
-
-        const [p1, p2] = getSideLine(topLeft, i);
-
-        if (side === SideType.TOWN) {
-          polygon.push(p1, p2);
-        } else {
-          polygon.push(p1, getSideOffsetCenter(topLeft, i, CARD_SIZE / 3), p2);
-        }
-      }
-
-      drawPolygon(ctx, polygon, TOWN_STYLE);
-    } else {
-      const firstTownSide = sides.indexOf(SideType.TOWN);
-      const secondTownSide = sides.indexOf(SideType.TOWN, firstTownSide + 1);
-
-      if (
-        townsCount === 2 &&
-        connects[firstTownSide] &&
-        connects[firstTownSide] === connects[secondTownSide]
-      ) {
-        if (firstTownSide % 2 === secondTownSide % 2) {
-          for (let i = 0; i < sides.length; i++) {
-            if (sides[i] === SideType.TOWN) {
-              const [p1, p2] = getSideLine(topLeft, i);
-              drawPolygon(
-                ctx,
-                [p1, p2, getSideOffsetCenter(topLeft, i, (3 / 4) * CARD_SIZE)],
-                TOWN_STYLE
-              );
-            }
-          }
-        } else {
-          const polygon = [];
-          for (let i = 0; i < sides.length; i++) {
-            if (sides[i] === SideType.TOWN) {
-              polygon.push(...getSideLine(topLeft, i));
-            }
-          }
-          drawPolygon(ctx, polygon, TOWN_STYLE);
-        }
-      } else {
-        for (let i = 0; i < sides.length; i++) {
-          const side = sides[i];
-          const [p1, p2] = getSideLine(topLeft, i);
-
-          if (side === SideType.TOWN) {
-            const outerCenter = getSideOffsetCenter(topLeft, i);
-            drawPolygon(ctx, [p1, p2, outerCenter], TOWN_STYLE);
-          }
-        }
-      }
-    }
-
-    if (cardInfo.building === Building.Monastery) {
-      drawText(ctx, center, 'M', '#000');
-    }
+      cardInfo: rotatedCardInfo,
+    });
   }
 
   ctx.restore();
+
+  const lastCard = state.cardPool[state.cardPool.length - 1];
+
+  if (lastCard) {
+    ctx.save();
+    drawRect(
+      ctx,
+      { x: width - CARD_SIZE - 30, y: 10 },
+      { width: CARD_SIZE + 20, height: CARD_SIZE + 20 },
+      '#999'
+    );
+    drawCard(ctx, {
+      topLeft: { x: width - CARD_SIZE - 20, y: 20 },
+      cardInfo: cardsById[lastCard],
+    });
+    ctx.restore();
+  }
+}
+
+function drawCard(
+  ctx: CanvasRenderingContext2D,
+  {
+    topLeft,
+    cardInfo,
+  }: {
+    topLeft: Point;
+    cardInfo: CardInfo;
+  }
+): void {
+  const { sides, connects } = cardInfo;
+
+  const center = {
+    x: topLeft.x + CARD_SIZE / 2,
+    y: topLeft.y + CARD_SIZE / 2,
+  };
+
+  drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, FIELD_STYLE);
+
+  // Draw roads and fields
+  for (let i = 0; i < sides.length; i++) {
+    const side = sides[i];
+
+    switch (side) {
+      case SideType.GROUND:
+      case SideType.ROAD: {
+        if (side === SideType.ROAD) {
+          const roadStart = getSideCenter(topLeft, i);
+          const connect = connects[i];
+
+          if (connect) {
+            for (let j = i + 1; j < connects.length; j++) {
+              if (i !== j && connect === connects[j]) {
+                drawLine(ctx, roadStart, getSideCenter(topLeft, j), '#000');
+              }
+            }
+          } else {
+            drawLine(
+              ctx,
+              roadStart,
+              getSideOffsetCenter(topLeft, i, CARD_SIZE / 3),
+              '#000'
+            );
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  const roadsCount = sides.filter((side) => side === SideType.ROAD).length;
+
+  if (roadsCount >= 3) {
+    drawCircle(
+      ctx,
+      { x: topLeft.x + CARD_SIZE / 2, y: topLeft.y + CARD_SIZE / 2 },
+      CARD_SIZE / 6,
+      '#aaa'
+    );
+  }
+
+  // Draw towns
+  const townsCount = sides.filter((side) => side === SideType.TOWN).length;
+
+  if (townsCount === 4) {
+    drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, TOWN_STYLE);
+  } else if (townsCount === 3) {
+    const polygon = [];
+
+    for (let i = 0; i < sides.length; i++) {
+      const side = sides[i];
+
+      const [p1, p2] = getSideLine(topLeft, i);
+
+      if (side === SideType.TOWN) {
+        polygon.push(p1, p2);
+      } else {
+        polygon.push(p1, getSideOffsetCenter(topLeft, i, CARD_SIZE / 3), p2);
+      }
+    }
+
+    drawPolygon(ctx, polygon, TOWN_STYLE);
+  } else {
+    const firstTownSide = sides.indexOf(SideType.TOWN);
+    const secondTownSide = sides.indexOf(SideType.TOWN, firstTownSide + 1);
+
+    if (
+      townsCount === 2 &&
+      connects[firstTownSide] &&
+      connects[firstTownSide] === connects[secondTownSide]
+    ) {
+      if (firstTownSide % 2 === secondTownSide % 2) {
+        for (let i = 0; i < sides.length; i++) {
+          if (sides[i] === SideType.TOWN) {
+            const [p1, p2] = getSideLine(topLeft, i);
+            drawPolygon(
+              ctx,
+              [p1, p2, getSideOffsetCenter(topLeft, i, (3 / 4) * CARD_SIZE)],
+              TOWN_STYLE
+            );
+          }
+        }
+      } else {
+        const polygon = [];
+        for (let i = 0; i < sides.length; i++) {
+          if (sides[i] === SideType.TOWN) {
+            polygon.push(...getSideLine(topLeft, i));
+          }
+        }
+        drawPolygon(ctx, polygon, TOWN_STYLE);
+      }
+    } else {
+      for (let i = 0; i < sides.length; i++) {
+        const side = sides[i];
+        const [p1, p2] = getSideLine(topLeft, i);
+
+        if (side === SideType.TOWN) {
+          const outerCenter = getSideOffsetCenter(topLeft, i);
+          drawPolygon(ctx, [p1, p2, outerCenter], TOWN_STYLE);
+        }
+      }
+    }
+  }
+
+  if (cardInfo.building === Building.Monastery) {
+    drawText(ctx, center, 'M', '#000');
+  }
 }
 
 function getSideLine({ x, y }: Point, side: number): [Point, Point] {

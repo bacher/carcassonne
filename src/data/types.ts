@@ -1,16 +1,24 @@
+import { CardInfo } from './cards';
+import { CellCoords } from '../utils/logic';
+
+export type CardId = `card:${string}`;
+
 export const enum Orientation {
-  NORTH = 1,
+  NORTH,
   EAST,
   SOUTH,
   WEST,
 }
 
 export type Zone = {
-  cardId: number;
-  coordinates: [number, number];
+  cardId: CardId;
+  rotatedCard: CardInfo;
+  coordinates: CellCoords;
   orientation: Orientation;
 };
 
 export type GameState = {
-  zones: Zone[];
+  zones: Map<number, Zone>;
+  potentialZones: Set<number>;
+  cardPool: CardId[];
 };

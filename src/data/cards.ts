@@ -8,15 +8,14 @@ export const enum SideType {
   ROAD,
 }
 
-export type CardType = {
+export type CardInfo = {
   id: number;
   sides: [SideType, SideType, SideType, SideType];
   connects: [number, number, number, number];
-  road?: number[];
   building?: Building;
 };
 
-export const cards: CardType[] = [
+export const cards: CardInfo[] = [
   {
     id: 1,
     sides: [SideType.ROAD, SideType.ROAD, SideType.GROUND, SideType.GROUND],
@@ -71,44 +70,54 @@ export const cards: CardType[] = [
   },
   {
     id: 11,
-    sides: [SideType.TOWN, SideType.TOWN, SideType.ROAD, SideType.ROAD],
-    connects: [1, 1, 2, 2],
-  },
-  {
-    id: 12,
-    sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
-    connects: [1, 1, 0, 0],
-  },
-  {
-    id: 13,
-    sides: [SideType.GROUND, SideType.TOWN, SideType.GROUND, SideType.TOWN],
-    connects: [0, 0, 0, 0],
-  },
-  {
-    id: 14,
     sides: [SideType.TOWN, SideType.TOWN, SideType.TOWN, SideType.ROAD],
     connects: [1, 1, 1, 0],
   },
   {
+    id: 12,
+    sides: [SideType.TOWN, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    connects: [1, 1, 1, 1],
+  },
+  {
+    id: 13,
+    sides: [SideType.TOWN, SideType.TOWN, SideType.ROAD, SideType.ROAD],
+    connects: [1, 1, 2, 2],
+  },
+  {
+    id: 14,
+    sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
+    connects: [1, 1, 0, 0],
+  },
+  {
     id: 15,
-    sides: [SideType.ROAD, SideType.ROAD, SideType.ROAD, SideType.ROAD],
+    sides: [SideType.GROUND, SideType.TOWN, SideType.GROUND, SideType.TOWN],
     connects: [0, 0, 0, 0],
   },
   {
     id: 16,
+    sides: [SideType.ROAD, SideType.ROAD, SideType.ROAD, SideType.ROAD],
+    connects: [0, 0, 0, 0],
+  },
+  {
+    id: 17,
     sides: [SideType.TOWN, SideType.GROUND, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 1, 1],
   },
   {
-    id: 17,
+    id: 18,
     sides: [SideType.TOWN, SideType.ROAD, SideType.ROAD, SideType.GROUND],
     connects: [0, 1, 1, 0],
   },
   {
-    id: 18,
+    id: 19,
     sides: [SideType.TOWN, SideType.ROAD, SideType.GROUND, SideType.ROAD],
     connects: [0, 1, 0, 1],
   },
 ];
 
-const startGameCardId = 18;
+export const cardsById = cards.reduce((acc, card) => {
+  acc[card.id] = card;
+  return acc;
+}, {} as Record<number, CardInfo>);
+
+export const startGameCardId = 19;

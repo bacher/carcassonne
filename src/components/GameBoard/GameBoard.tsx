@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 
 import { render } from '../../utils/render';
+import { startGameCardId } from '../../data/cards';
+import { GameState, Orientation, Zone } from '../../data/types';
 import styles from './GameBoard.module.css';
 
 export function GameBoard() {
@@ -9,7 +11,25 @@ export function GameBoard() {
   useEffect(() => {
     const ctx = canvasRef.current!.getContext('2d')!;
 
-    render(ctx, {});
+    const gameState: GameState = {
+      zones: [
+        {
+          cardId: startGameCardId,
+          orientation: Orientation.NORTH,
+          coordinates: [0, 0],
+        },
+        ...Array.from({ length: 17 }).map(
+          (v, i): Zone => ({
+            cardId: i + 1,
+            orientation: Orientation.NORTH,
+            coordinates: [(i + 1) % 6, Math.floor((i + 1) / 6)],
+          })
+        ),
+      ],
+    };
+    console.log('gameState', gameState);
+
+    render(ctx, gameState);
   }, []);
 
   return (
@@ -18,8 +38,8 @@ export function GameBoard() {
         ref={canvasRef}
         className={styles.canvas}
         width={800}
-        height={800}
-      ></canvas>
+        height={600}
+      />
     </div>
   );
 }

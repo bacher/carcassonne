@@ -48,7 +48,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     }
 
     const rotatedCardInfo = rotateCardInfo(cardInfo, zone.orientation);
-    const { sides } = rotatedCardInfo;
+    const { sides, connects } = rotatedCardInfo;
 
     drawRect(
       ctx,
@@ -78,16 +78,21 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
         case SideType.ROAD: {
           if (side === SideType.ROAD) {
             const roadStart = getSideCenter(topLeft, i);
-            const connect = rotatedCardInfo.connects[i];
+            const connect = connects[i];
 
             if (connect) {
-              for (let j = i + 1; j < rotatedCardInfo.connects.length; j++) {
-                if (i !== j && connect === rotatedCardInfo.connects[j]) {
+              for (let j = i + 1; j < connects.length; j++) {
+                if (i !== j && connect === connects[j]) {
                   drawLine(ctx, roadStart, getSideCenter(topLeft, j), '#000');
                 }
               }
             } else {
-              drawLine(ctx, roadStart, getSideInnerCenter(topLeft, i), '#000');
+              drawLine(
+                ctx,
+                roadStart,
+                getSideOffsetCenter(topLeft, i, CARD_SIZE / 3),
+                '#000'
+              );
             }
           }
           break;
@@ -127,19 +132,49 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
         if (side === SideType.TOWN) {
           polygon.push(p1, p2);
         } else {
-          polygon.push(p1, getSideInnerCenter(topLeft, i), p2);
+          polygon.push(p1, getSideOffsetCenter(topLeft, i, CARD_SIZE / 3), p2);
         }
       }
 
       drawPolygon(ctx, polygon, TOWN_STYLE);
     } else {
-      for (let i = 0; i < sides.length; i++) {
-        const side = sides[i];
-        const [p1, p2] = getSideLine(topLeft, i);
+      const firstTownSide = sides.indexOf(SideType.TOWN);
+      const secondTownSide = sides.indexOf(SideType.TOWN, firstTownSide + 1);
 
-        if (side === SideType.TOWN) {
-          const outerCenter = getSideOuterCenter(topLeft, i);
-          drawPolygon(ctx, [p1, p2, outerCenter], TOWN_STYLE);
+      if (
+        townsCount === 2 &&
+        connects[firstTownSide] &&
+        connects[firstTownSide] === connects[secondTownSide]
+      ) {
+        if (firstTownSide % 2 === secondTownSide % 2) {
+          for (let i = 0; i < sides.length; i++) {
+            if (sides[i] === SideType.TOWN) {
+              const [p1, p2] = getSideLine(topLeft, i);
+              drawPolygon(
+                ctx,
+                [p1, p2, getSideOffsetCenter(topLeft, i, (3 / 4) * CARD_SIZE)],
+                TOWN_STYLE
+              );
+            }
+          }
+        } else {
+          const polygon = [];
+          for (let i = 0; i < sides.length; i++) {
+            if (sides[i] === SideType.TOWN) {
+              polygon.push(...getSideLine(topLeft, i));
+            }
+          }
+          drawPolygon(ctx, polygon, TOWN_STYLE);
+        }
+      } else {
+        for (let i = 0; i < sides.length; i++) {
+          const side = sides[i];
+          const [p1, p2] = getSideLine(topLeft, i);
+
+          if (side === SideType.TOWN) {
+            const outerCenter = getSideOffsetCenter(topLeft, i);
+            drawPolygon(ctx, [p1, p2, outerCenter], TOWN_STYLE);
+          }
         }
       }
     }
@@ -196,37 +231,22 @@ function getSideCenter(topLeft: Point, side: number): Point {
   }
 }
 
-function getSideInnerCenter(topLeft: Point, side: number): Point {
+function getSideOffsetCenter(
+  topLeft: Point,
+  side: number,
+  offset = CARD_SIZE / 4
+): Point {
   const { x, y } = topLeft;
 
   switch (side) {
     case 0:
-      return { x: x + CARD_SIZE / 2, y: y + CARD_SIZE / 3 };
+      return { x: x + CARD_SIZE / 2, y: y + offset };
     case 1:
-      return { x: x + (2 / 3) * CARD_SIZE, y: y + CARD_SIZE / 2 };
+      return { x: x + CARD_SIZE - offset, y: y + CARD_SIZE / 2 };
     case 2:
-      return { x: x + CARD_SIZE / 2, y: y + (2 / 3) * CARD_SIZE };
+      return { x: x + CARD_SIZE / 2, y: y + CARD_SIZE - offset };
     case 3:
-      return { x: x + CARD_SIZE / 3, y: y + CARD_SIZE / 2 };
-    default:
-      throw new Error();
-  }
-}
-
-function getSideOuterCenter(topLeft: Point, side: number): Point {
-  const { x, y } = topLeft;
-
-  const shift = CARD_SIZE / 4;
-
-  switch (side) {
-    case 0:
-      return { x: x + CARD_SIZE / 2, y: y + shift };
-    case 1:
-      return { x: x + CARD_SIZE - shift, y: y + CARD_SIZE / 2 };
-    case 2:
-      return { x: x + CARD_SIZE / 2, y: y + CARD_SIZE - shift };
-    case 3:
-      return { x: x + shift, y: y + CARD_SIZE / 2 };
+      return { x: x + offset, y: y + CARD_SIZE / 2 };
     default:
       throw new Error();
   }

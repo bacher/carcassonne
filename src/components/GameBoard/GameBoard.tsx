@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 
 import { render } from '../../utils/render';
-import { startGameCardId } from '../../data/cards';
-import { GameState, Orientation, Zone } from '../../data/types';
+import { GameState, Orientation } from '../../data/types';
+import { cards, startGameCardId } from '../../data/cards';
 import styles from './GameBoard.module.css';
 
 export function GameBoard() {
@@ -18,13 +18,13 @@ export function GameBoard() {
           orientation: Orientation.NORTH,
           coordinates: [0, 0],
         },
-        ...Array.from({ length: 17 }).map(
-          (v, i): Zone => ({
-            cardId: i + 1,
-            orientation: Orientation.NORTH,
-            coordinates: [(i + 1) % 6, Math.floor((i + 1) / 6)],
-          })
-        ),
+        // ...cards.map(
+        //   (card, i): Zone => ({
+        //     cardId: card.id,
+        //     orientation: Orientation.NORTH,
+        //     coordinates: [i % 6, Math.floor(i / 6)],
+        //   })
+        // ),
       ],
     };
     console.log('gameState', gameState);

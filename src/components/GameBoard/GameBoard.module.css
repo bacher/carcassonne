@@ -2,6 +2,13 @@
   display: flex;
 }
 
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  padding: 8px;
+}
+
 .canvas {
   width: 800px;
   height: 600px;

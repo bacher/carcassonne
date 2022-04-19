@@ -42,7 +42,13 @@ export function App() {
       onStartPlay={(game) => {
         const gameId = `game${Math.floor(Math.random() * 10000)}`;
 
-        localStorage.setItem(gameId, JSON.stringify(game));
+        localStorage.setItem(
+          gameId,
+          JSON.stringify({
+            ...game,
+            gameId,
+          }),
+        );
         window.location.hash = `#${gameId}`;
         setGameId(gameId);
       }}

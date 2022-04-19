@@ -66,22 +66,31 @@ export function cellIdToCoords(cellId: CellId): CellCoords {
   };
 }
 
-export function putCard(gameState: GameState, card: Zone): void {
-  const cellId = getCellId(card.coordinates);
+export function putCardInGame(gameState: GameState, zone: Zone): void {
+  const cellId = getCellId(zone.coordinates);
 
   gameState.potentialZones.delete(cellId);
 
-  gameState.zones.set(cellId, card);
+  gameState.zones.set(cellId, zone);
 
-  const around = getAroundCellIds(card.coordinates);
+  const around = getAroundCellIds(zone.coordinates);
   for (const cellId of around) {
     if (!gameState.zones.has(cellId)) {
       gameState.potentialZones.add(cellId);
     }
   }
+
+  gameState.cardPool.pop();
+  gameState.activePlayer =
+    (gameState.activePlayer + 1) % gameState.players.length;
 }
 
-export function fitNextCard(gameState: GameState): boolean {
+export function fitNextCard(gameState: GameState):
+  | {
+      card: InGameCard;
+      coordinates: CellCoords;
+    }
+  | undefined {
   const currentCard = gameState.cardPool[gameState.cardPool.length - 1];
 
   if (!currentCard) {
@@ -92,7 +101,7 @@ export function fitNextCard(gameState: GameState): boolean {
   const cardInfo = cardsById[currentCard.cardTypeId];
 
   const cells = Array.from(gameState.potentialZones.values()).map(
-    cellIdToCoords
+    cellIdToCoords,
   );
 
   for (let i = 0; i < cardInfo.maxOrientation; i++) {
@@ -109,20 +118,17 @@ export function fitNextCard(gameState: GameState): boolean {
         (!southCard || currentCard.sides[2] === southCard.card.sides[0]) &&
         (!westCard || currentCard.sides[3] === westCard.card.sides[1])
       ) {
-        putCard(gameState, {
-          cardTypeId: cardInfo.id,
+        return {
           card: currentCard,
           coordinates: cell,
-        });
-        gameState.cardPool.pop();
-        return true;
+        };
       }
     }
 
     rotateCard(currentCard);
   }
 
-  return false;
+  return undefined;
 }
 
 export function generateCardPool(): {

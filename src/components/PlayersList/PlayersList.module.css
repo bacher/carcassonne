@@ -1,0 +1,35 @@
+.root {
+}
+
+.player {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border: 1px solid #999;
+  gap: 8px;
+}
+
+.player:not(:last-child) {
+  border-bottom: none;
+}
+
+.playerActive {
+  background: #fbffb1;
+}
+
+.playerTopLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playerColor {
+  width: 24px;
+  height: 24px;
+}
+
+.playerStats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

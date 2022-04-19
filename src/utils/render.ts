@@ -1,4 +1,4 @@
-import type { GameState, Zone } from '../data/types';
+import type { GameState, Point, Zone } from '../data/types';
 import {
   Building,
   CardTypeInfo,
@@ -6,18 +6,13 @@ import {
   SideType,
   InGameCard,
 } from '../data/cards';
-import { cellIdToCoords } from './logic';
+import { cellIdToCoords, getCellId } from './logic';
 
 const CARD_SIZE = 50;
 
 const GRID_GAP = 1;
 
 const CELL_SIZE = CARD_SIZE + GRID_GAP;
-
-type Point = {
-  x: number;
-  y: number;
-};
 
 type Size = {
   width: number;
@@ -33,7 +28,11 @@ const GRID_SIZE = 25;
 export function render(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  { size: { width, height }, viewport }: { size: Size; viewport: Point }
+  {
+    size: { width, height },
+    viewport,
+    hoverCell,
+  }: { size: Size; viewport: Point; hoverCell: number | undefined },
 ) {
   ctx.clearRect(0, 0, width, height);
 
@@ -65,6 +64,22 @@ export function render(
     drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, '#cdf');
   }
 
+  if (hoverCell) {
+    const { col, row } = cellIdToCoords(hoverCell);
+
+    const topLeft = {
+      x: col * CELL_SIZE,
+      y: row * CELL_SIZE,
+    };
+
+    drawRect(
+      ctx,
+      topLeft,
+      { width: CARD_SIZE, height: CARD_SIZE },
+      'rgba(255,0,0,0.1)',
+    );
+  }
+
   ctx.restore();
 
   const lastCard = state.cardPool[state.cardPool.length - 1];
@@ -75,7 +90,7 @@ export function render(
       ctx,
       { x: width - CARD_SIZE - 30, y: 10 },
       { width: CARD_SIZE + 20, height: CARD_SIZE + 20 },
-      '#999'
+      '#999',
     );
     drawCard(ctx, {
       topLeft: { x: width - CARD_SIZE - 20, y: 20 },
@@ -93,7 +108,7 @@ export function drawCard(
   }: {
     topLeft: Point;
     card: InGameCard;
-  }
+  },
 ): void {
   const { sides, connects } = card;
 
@@ -126,7 +141,7 @@ export function drawCard(
               ctx,
               roadStart,
               getSideOffsetCenter(topLeft, i, CARD_SIZE / 3),
-              '#000'
+              '#000',
             );
           }
         }
@@ -142,7 +157,7 @@ export function drawCard(
       ctx,
       { x: topLeft.x + CARD_SIZE / 2, y: topLeft.y + CARD_SIZE / 2 },
       CARD_SIZE / 6,
-      '#aaa'
+      '#aaa',
     );
   }
 
@@ -183,7 +198,7 @@ export function drawCard(
             drawPolygon(
               ctx,
               [p1, p2, getSideOffsetCenter(topLeft, i, (3 / 4) * CARD_SIZE)],
-              TOWN_STYLE
+              TOWN_STYLE,
             );
           }
         }
@@ -261,7 +276,7 @@ function getSideCenter(topLeft: Point, side: number): Point {
 function getSideOffsetCenter(
   topLeft: Point,
   side: number,
-  offset = CARD_SIZE / 4
+  offset = CARD_SIZE / 4,
 ): Point {
   const { x, y } = topLeft;
 
@@ -282,7 +297,7 @@ function getSideOffsetCenter(
 function drawPolygon(
   ctx: CanvasRenderingContext2D,
   points: Point[],
-  color: string
+  color: string,
 ): void {
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
@@ -298,7 +313,7 @@ function drawCircle(
   ctx: CanvasRenderingContext2D,
   { x, y }: Point,
   radius: number,
-  color: string
+  color: string,
 ): void {
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2, true);
@@ -315,7 +330,7 @@ function drawLine(
   ctx: CanvasRenderingContext2D,
   from: Point,
   to: Point,
-  color: string
+  color: string,
 ): void {
   ctx.beginPath();
   ctx.moveTo(from.x, from.y);
@@ -329,7 +344,7 @@ function drawRect(
   ctx: CanvasRenderingContext2D,
   { x, y }: Point,
   { width, height }: Size,
-  color: string
+  color: string,
 ): void {
   ctx.beginPath();
   ctx.rect(x, y, width, height);
@@ -342,7 +357,7 @@ function drawText(
   ctx: CanvasRenderingContext2D,
   { x, y }: Point,
   text: string,
-  color: string
+  color: string,
 ): void {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -370,4 +385,17 @@ function drawGrid(ctx: CanvasRenderingContext2D): void {
   ctx.strokeStyle = '#333';
   ctx.stroke();
   ctx.restore();
+}
+
+export function getCellByPoint(
+  { size, viewport }: { size: Size; viewport: Point },
+  { x, y }: Point,
+): number {
+  const innerX = x - viewport.x - size.width / 2;
+  const innerY = y - viewport.y - size.height / 2;
+
+  const col = Math.floor(innerX / CELL_SIZE);
+  const row = Math.floor(innerY / CELL_SIZE);
+
+  return getCellId({ col, row });
 }

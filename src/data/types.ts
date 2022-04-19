@@ -3,6 +3,11 @@ import { CellCoords } from '../utils/logic';
 
 export type CardTypeId = `card:${string}`;
 
+export type Point = {
+  x: number;
+  y: number;
+};
+
 export type Zone = {
   cardTypeId: CardTypeId;
   card: InGameCard;
@@ -10,9 +15,12 @@ export type Zone = {
 };
 
 export type GameState = {
+  gameId: string;
+  activePlayer: number;
   zones: Map<number, Zone>;
   potentialZones: Set<number>;
   cardPool: InGameCard[];
+  players: Player[];
 };
 
 export const enum Color {
@@ -35,8 +43,6 @@ export type Player = {
   name: string;
   isBot: boolean;
   color: Color;
-};
-
-export type InitialGame = {
-  players: Player[];
+  score: number;
+  peasantsCount: number;
 };

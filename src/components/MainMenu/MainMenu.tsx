@@ -1,9 +1,7 @@
 import { useState } from 'react';
 
-import { InitialGame, playerColors } from '../../data/types';
+import { playerColors } from '../../data/types';
 import styles from './MainMenu.module.css';
-
-
 
 type Player = {
   name: string;
@@ -11,7 +9,7 @@ type Player = {
 };
 
 type Props = {
-  onStartPlay: (game: InitialGame) => void;
+  onStartPlay: (game: { players: Player[] }) => void;
 };
 
 export function MainMenu({ onStartPlay }: Props) {
@@ -32,7 +30,7 @@ export function MainMenu({ onStartPlay }: Props) {
           };
         }
         return p;
-      })
+      }),
     );
   }
 
@@ -131,6 +129,8 @@ export function MainMenu({ onStartPlay }: Props) {
                   name,
                   isBot,
                   color: index,
+                  score: 0,
+                  peasantsCount: 7,
                 })),
               });
             }}

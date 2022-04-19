@@ -8,7 +8,7 @@ import styles from './CardPool.module.css';
 
 type Props = {
   cardPool: InGameCard[];
-  onChoose: (card: InGameCard)=>void;
+  onChoose: (card: InGameCard) => void;
 };
 
 type GroupedItem = {
@@ -17,7 +17,7 @@ type GroupedItem = {
   onRef: (el: HTMLCanvasElement | null) => void;
 };
 
-export function CardPool({ cardPool,onChoose }: Props) {
+export function CardPool({ cardPool, onChoose }: Props) {
   const [filters, setFilters] = useState({
     roads: true,
     towns: true,
@@ -120,10 +120,13 @@ export function CardPool({ cardPool,onChoose }: Props) {
       </div>
       <div className={styles.cards}>
         {filteredList.map((item) => (
-          <div key={item.card.cardTypeId} onClick={event => {
-            event.preventDefault();
-            onChoose(item.card);
-          }}>
+          <div
+            key={item.card.cardTypeId}
+            onClick={(event) => {
+              event.preventDefault();
+              onChoose(item.card);
+            }}
+          >
             <canvas
               ref={item.onRef}
               width={50}

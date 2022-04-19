@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { render } from '../../utils/render';
-import { GameState, Zone } from '../../data/types';
+import { GameState, InitialGame, Zone } from '../../data/types';
 import styles from './GameBoard.module.css';
 import {
   CellCoords,
@@ -53,7 +53,11 @@ function getAllCards(globalRotation: number): [CellId, Zone][] {
   });
 }
 
-export function GameBoard() {
+type Props = {
+  game: InitialGame;
+};
+
+export function GameBoard({ game }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [globalRotation, setGlobalRotation] = useState(0);
   const [isDragging, setDragging] = useState(false);
@@ -180,19 +184,22 @@ export function GameBoard() {
       </div>
       {isShowCardPool && (
         <div>
-          <CardPool cardPool={gameState.cardPool} onChoose={card => {
-            const index = gameState.cardPool.indexOf(card);
-            if (index === -1) {
-              throw new Error();
-            }
+          <CardPool
+            cardPool={gameState.cardPool}
+            onChoose={(card) => {
+              const index = gameState.cardPool.indexOf(card);
+              if (index === -1) {
+                throw new Error();
+              }
 
-            const pool = Array.from(gameState.cardPool);
-            pool.splice(index, 1);
-            pool.push(card);
-            gameState.cardPool = pool;
-            forceUpdate();
-            renderBoard();
-          }}/>
+              const pool = Array.from(gameState.cardPool);
+              pool.splice(index, 1);
+              pool.push(card);
+              gameState.cardPool = pool;
+              forceUpdate();
+              renderBoard();
+            }}
+          />
         </div>
       )}
     </div>

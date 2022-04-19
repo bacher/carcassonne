@@ -1,0 +1,56 @@
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  min-height: 260px;
+  padding: 18px;
+  border-radius: 12px;
+  background: bisque;
+}
+
+.players {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.playerInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.playerColor {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+.playerName {
+  width: 100px;
+  height: 40px;
+  font-size: 28px;
+  flex-grow: 1;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 26px;
+}
+
+.startGame {
+  font-size: 28px;
+  line-height: 52px;
+  align-self: center;
+}

@@ -84,7 +84,7 @@ const cardsPartial: CardTypeInfoPartial[] = [
     id: 'card:9',
     sides: [SideType.TOWN, SideType.ROAD, SideType.ROAD, SideType.GROUND],
     connects: [0, 1, 1, 0],
-    initialInDeckCount: 2,
+    initialInDeckCount: 3,
   },
   {
     id: 'card:10',
@@ -103,7 +103,7 @@ const cardsPartial: CardTypeInfoPartial[] = [
     id: 'card:12',
     sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
     connects: [1, 1, 0, 0],
-    initialInDeckCount: 6,
+    initialInDeckCount: 5,
     primeTownCount: 2,
   },
   {

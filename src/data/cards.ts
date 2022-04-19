@@ -19,7 +19,7 @@ type CardBase = {
 type CardTypeInfoPartial = CardBase & {
   id: CardTypeId;
   initialInDeckCount: number;
-  primeTownCount?: number;
+  isPrimeTown?: boolean;
 };
 
 export type CardTypeInfo = CardTypeInfoPartial & {
@@ -97,59 +97,88 @@ const cardsPartial: CardTypeInfoPartial[] = [
     sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
     connects: [0, 0, 0, 0],
     initialInDeckCount: 2,
-    primeTownCount: 0,
   },
   {
     id: 'card:12',
     sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
     connects: [1, 1, 0, 0],
-    initialInDeckCount: 5,
-    primeTownCount: 2,
+    initialInDeckCount: 3,
   },
   {
     id: 'card:13',
-    sides: [SideType.TOWN, SideType.TOWN, SideType.ROAD, SideType.ROAD],
-    connects: [1, 1, 2, 2],
-    initialInDeckCount: 5,
-    primeTownCount: 2,
+    sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
+    connects: [1, 1, 0, 0],
+    initialInDeckCount: 2,
+    isPrimeTown: true,
   },
   {
     id: 'card:14',
-    sides: [SideType.TOWN, SideType.GROUND, SideType.TOWN, SideType.GROUND],
-    connects: [1, 0, 1, 0],
+    sides: [SideType.TOWN, SideType.TOWN, SideType.ROAD, SideType.ROAD],
+    connects: [1, 1, 2, 2],
     initialInDeckCount: 3,
-    primeTownCount: 2,
   },
   {
     id: 'card:15',
-    sides: [SideType.GROUND, SideType.TOWN, SideType.TOWN, SideType.TOWN],
-    connects: [0, 1, 1, 1],
-    initialInDeckCount: 4,
-    primeTownCount: 1,
+    sides: [SideType.TOWN, SideType.TOWN, SideType.ROAD, SideType.ROAD],
+    connects: [1, 1, 2, 2],
+    initialInDeckCount: 2,
+    isPrimeTown: true,
   },
   {
     id: 'card:16',
-    sides: [SideType.ROAD, SideType.TOWN, SideType.TOWN, SideType.TOWN],
-    connects: [0, 1, 1, 1],
-    initialInDeckCount: 3,
-    primeTownCount: 2,
+    sides: [SideType.GROUND, SideType.TOWN, SideType.GROUND, SideType.TOWN],
+    connects: [0, 1, 0, 1],
+    initialInDeckCount: 1,
   },
   {
     id: 'card:17',
-    sides: [SideType.TOWN, SideType.TOWN, SideType.TOWN, SideType.TOWN],
-    connects: [1, 1, 1, 1],
-    initialInDeckCount: 1,
-    primeTownCount: 1,
+    sides: [SideType.GROUND, SideType.TOWN, SideType.GROUND, SideType.TOWN],
+    connects: [0, 1, 0, 1],
+    initialInDeckCount: 2,
+    isPrimeTown: true,
   },
   {
     id: 'card:18',
+    sides: [SideType.GROUND, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    connects: [0, 1, 1, 1],
+    initialInDeckCount: 3,
+  },
+  {
+    id: 'card:19',
+    sides: [SideType.GROUND, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    connects: [0, 1, 1, 1],
+    initialInDeckCount: 1,
+    isPrimeTown: true,
+  },
+  {
+    id: 'card:20',
+    sides: [SideType.ROAD, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    connects: [0, 1, 1, 1],
+    initialInDeckCount: 1,
+  },
+  {
+    id: 'card:21',
+    sides: [SideType.ROAD, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    connects: [0, 1, 1, 1],
+    initialInDeckCount: 2,
+    isPrimeTown: true,
+  },
+  {
+    id: 'card:22',
+    sides: [SideType.TOWN, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    connects: [1, 1, 1, 1],
+    initialInDeckCount: 1,
+    isPrimeTown: true,
+  },
+  {
+    id: 'card:23',
     sides: [SideType.GROUND, SideType.GROUND, SideType.GROUND, SideType.GROUND],
     building: Building.Monastery,
     connects: [0, 0, 0, 0],
     initialInDeckCount: 4,
   },
   {
-    id: 'card:19',
+    id: 'card:24',
     sides: [SideType.ROAD, SideType.GROUND, SideType.GROUND, SideType.GROUND],
     building: Building.Monastery,
     connects: [0, 0, 0, 0],
@@ -190,5 +219,5 @@ export const cardsById = cards.reduce((acc, card) => {
 
 console.log(
   'Total desk size:',
-  cards.reduce((acc, card) => acc + card.initialInDeckCount, 0)
+  cards.reduce((acc, card) => acc + card.initialInDeckCount, 0),
 );

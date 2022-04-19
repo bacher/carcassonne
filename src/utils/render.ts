@@ -224,9 +224,23 @@ export function drawCard(
     }
   }
 
+  if (card.isPrimeTown) {
+    drawShield(ctx, center);
+  }
+
   if (card.building === Building.Monastery) {
     drawText(ctx, center, 'M', '#000');
   }
+}
+
+function drawShield(ctx: CanvasRenderingContext2D, { x, y }: Point): void {
+  ctx.beginPath();
+  ctx.moveTo(x - CARD_SIZE / 4, y - CARD_SIZE / 5);
+  ctx.lineTo(x + CARD_SIZE / 4, y - CARD_SIZE / 5);
+  ctx.lineTo(x, y + CARD_SIZE / 4);
+  ctx.closePath();
+  ctx.fillStyle = '#4b85e8';
+  ctx.fill();
 }
 
 function getSideLine({ x, y }: Point, side: number): [Point, Point] {

@@ -41,7 +41,7 @@ function getAllCards(): [CellId, Zone][] {
       row: Math.floor(i / 6),
     };
 
-    const card = instantiateCard(cardsById[cardInfo.id], false);
+    const card = instantiateCard(cardsById[cardInfo.id]);
 
     return [
       getCellId(coordinates),

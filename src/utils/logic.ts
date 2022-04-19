@@ -3,13 +3,13 @@ import { shuffle } from 'lodash';
 import { cards, cardsById, CardTypeInfo, InGameCard } from '../data/cards';
 import { GameState, Zone } from '../data/types';
 
-export function instantiateCard(card: CardTypeInfo, isPrimeTown: boolean) {
+export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
     cardTypeId: card.id,
     sides: card.sides,
     connects: card.connects,
     building: card.building,
-    isPrimeTown,
+    isPrimeTown: Boolean(card.isPrimeTown),
   };
 }
 
@@ -139,7 +139,7 @@ export function generateCardPool(): {
 
   for (const card of Array.from(cards)) {
     for (let i = 0; i < card.initialInDeckCount; i++) {
-      pool.push(instantiateCard(card, i < (card.primeTownCount ?? 0)));
+      pool.push(instantiateCard(card));
     }
   }
 

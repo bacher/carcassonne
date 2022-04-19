@@ -1,0 +1,23 @@
+.root {
+  padding: 8px;
+}
+
+.filters {
+  display: flex;
+  margin-bottom: 16px;
+  gap: 4px;
+}
+
+.label {
+  user-select: none;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.itemCanvas {
+  display: block;
+}

@@ -13,7 +13,9 @@ import {
   instantiateCard,
   rotateCard,
 } from '../../utils/logic';
+import { CardPool } from '../CardPool';
 import { cards, cardsById } from '../../data/cards';
+import { useForceUpdate } from '../../hooks/useForceUpdate';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -55,8 +57,10 @@ export function GameBoard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [globalRotation, setGlobalRotation] = useState(0);
   const [isDragging, setDragging] = useState(false);
+  const [isShowCardPool, setShowCardPool] = useState(false);
   const dragStartPos = useMemo(() => ({ x: 0, y: 0 }), []);
   const viewport = useMemo(() => ({ pos: { x: 0, y: 0 } }), []);
+  const forceUpdate = useForceUpdate();
   const gameState = useMemo<GameState>(() => {
     const { initialCard, cardPool } = generateCardPool();
 
@@ -131,7 +135,7 @@ export function GameBoard() {
           height={HEIGHT}
         />
       </div>
-      <div>
+      <div className={styles.buttons}>
         <button
           type="button"
           onClick={(event) => {
@@ -149,6 +153,7 @@ export function GameBoard() {
             }
 
             renderBoard();
+            forceUpdate();
             console.log(gameState);
           }}
         >
@@ -163,7 +168,33 @@ export function GameBoard() {
         >
           Rotate
         </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            setShowCardPool(true);
+          }}
+        >
+          Choose next card
+        </button>
       </div>
+      {isShowCardPool && (
+        <div>
+          <CardPool cardPool={gameState.cardPool} onChoose={card => {
+            const index = gameState.cardPool.indexOf(card);
+            if (index === -1) {
+              throw new Error();
+            }
+
+            const pool = Array.from(gameState.cardPool);
+            pool.splice(index, 1);
+            pool.push(card);
+            gameState.cardPool = pool;
+            forceUpdate();
+            renderBoard();
+          }}/>
+        </div>
+      )}
     </div>
   );
 }

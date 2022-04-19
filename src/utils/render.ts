@@ -85,7 +85,7 @@ export function render(
   }
 }
 
-function drawCard(
+export function drawCard(
   ctx: CanvasRenderingContext2D,
   {
     topLeft,

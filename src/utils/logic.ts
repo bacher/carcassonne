@@ -1,7 +1,7 @@
 import { shuffle } from 'lodash';
 
 import { cards, cardsById, CardTypeInfo, InGameCard } from '../data/cards';
-import { GameState, Zone } from '../data/types';
+import { GameState, Zone, Zones } from '../data/types';
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
@@ -45,13 +45,6 @@ export function getAroundCellIds({
   ];
 }
 
-// @ts-ignore
-window.getAroundCellIds = getAroundCellIds;
-// @ts-ignore
-window.getCellId = getCellId;
-// @ts-ignore
-window.cellIdToCoords = cellIdToCoords;
-
 const BOUND = 2 ** 12;
 const HALF_BOUND = BOUND / 2;
 
@@ -66,7 +59,17 @@ export function cellIdToCoords(cellId: CellId): CellCoords {
   };
 }
 
-export function putCardInGame(gameState: GameState, zone: Zone): void {
+export function putCardInGame(
+  gameState: GameState,
+  card: InGameCard,
+  coords: CellCoords,
+): void {
+  const zone = {
+    card,
+    cardTypeId: card.cardTypeId,
+    coordinates: coords,
+  };
+
   const cellId = getCellId(zone.coordinates);
 
   gameState.potentialZones.delete(cellId);
@@ -85,10 +88,29 @@ export function putCardInGame(gameState: GameState, zone: Zone): void {
     (gameState.activePlayer + 1) % gameState.players.length;
 }
 
+export function canBePlaced(
+  zones: Zones,
+  card: InGameCard,
+  coords: CellCoords,
+): boolean {
+  const [northId, eastId, southId, westId] = getAroundCellIds(coords);
+  const northCard = zones.get(northId);
+  const eastCard = zones.get(eastId);
+  const southCard = zones.get(southId);
+  const westCard = zones.get(westId);
+
+  return (
+    (!northCard || card.sides[0] === northCard.card.sides[2]) &&
+    (!eastCard || card.sides[1] === eastCard.card.sides[3]) &&
+    (!southCard || card.sides[2] === southCard.card.sides[0]) &&
+    (!westCard || card.sides[3] === westCard.card.sides[1])
+  );
+}
+
 export function fitNextCard(gameState: GameState):
   | {
       card: InGameCard;
-      coordinates: CellCoords;
+      coords: CellCoords;
     }
   | undefined {
   const currentCard = gameState.cardPool[gameState.cardPool.length - 1];
@@ -100,27 +122,16 @@ export function fitNextCard(gameState: GameState):
 
   const cardInfo = cardsById[currentCard.cardTypeId];
 
-  const cells = Array.from(gameState.potentialZones.values()).map(
+  const cellsCoords = Array.from(gameState.potentialZones.values()).map(
     cellIdToCoords,
   );
 
   for (let i = 0; i < cardInfo.maxOrientation; i++) {
-    for (const cell of cells) {
-      const [northId, eastId, southId, westId] = getAroundCellIds(cell);
-      const northCard = gameState.zones.get(northId);
-      const eastCard = gameState.zones.get(eastId);
-      const southCard = gameState.zones.get(southId);
-      const westCard = gameState.zones.get(westId);
-
-      if (
-        (!northCard || currentCard.sides[0] === northCard.card.sides[2]) &&
-        (!eastCard || currentCard.sides[1] === eastCard.card.sides[3]) &&
-        (!southCard || currentCard.sides[2] === southCard.card.sides[0]) &&
-        (!westCard || currentCard.sides[3] === westCard.card.sides[1])
-      ) {
+    for (const cellCoords of cellsCoords) {
+      if (canBePlaced(gameState.zones, currentCard, cellCoords)) {
         return {
           card: currentCard,
-          coordinates: cell,
+          coords: cellCoords,
         };
       }
     }

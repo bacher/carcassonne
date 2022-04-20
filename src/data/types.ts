@@ -14,10 +14,12 @@ export type Zone = {
   coordinates: CellCoords;
 };
 
+export type Zones = Map<number, Zone>;
+
 export type GameState = {
   gameId: string;
   activePlayer: number;
-  zones: Map<number, Zone>;
+  zones: Zones;
   potentialZones: Set<number>;
   cardPool: InGameCard[];
   players: Player[];

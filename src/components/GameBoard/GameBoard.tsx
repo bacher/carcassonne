@@ -5,6 +5,7 @@ import { getCellByPoint, render } from '../../utils/render';
 import { GameState, Player, Point, Zone } from '../../data/types';
 import styles from './GameBoard.module.css';
 import {
+  canBePlaced,
   CellCoords,
   CellId,
   cellIdToCoords,
@@ -233,14 +234,16 @@ export function GameBoard({ game }: Props) {
           const cellId = effects.hoverCellId;
 
           if (gameState.potentialZones.has(effects.hoverCellId)) {
-            putCardInGame(gameState, {
-              card,
-              cardTypeId: card.cardTypeId,
-              coordinates: cellIdToCoords(cellId),
-            });
+            const coords = cellIdToCoords(cellId);
 
-            forceUpdate();
-            renderBoard();
+            if (canBePlaced(gameState.zones, card, coords)) {
+              putCardInGame(gameState, card, coords);
+
+              forceUpdate();
+              renderBoard();
+            } else {
+              window.alert("Can't be placed here");
+            }
           }
         }
       }
@@ -300,11 +303,7 @@ export function GameBoard({ game }: Props) {
             console.timeEnd('find place');
 
             if (fitResult) {
-              putCardInGame(gameState, {
-                cardTypeId: fitResult.card.cardTypeId,
-                card: fitResult.card,
-                coordinates: fitResult.coordinates,
-              });
+              putCardInGame(gameState, fitResult.card, fitResult.coords);
             } else if (window.confirm("Can't be placed, try next?")) {
               gameState.cardPool.pop();
             }

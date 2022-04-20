@@ -26,34 +26,53 @@ export function rotateCard(card: InGameCard): void {
 export type CellId = number;
 
 export type CellCoords = {
+  cellId: CellId;
   col: number;
   row: number;
 };
 
-export function getAroundCellIds({
+export function makeCellCoordsByCellId(cellId: CellId): CellCoords {
+  return {
+    ...cellIdToCoords(cellId),
+    cellId,
+  };
+}
+
+export function makeCellCoordsByCoords(coords: {
+  col: number;
+  row: number;
+}): CellCoords {
+  return {
+    ...coords,
+    cellId: getCellId(coords),
+  };
+}
+
+export function getAroundCells({
   col,
   row,
 }: {
   col: number;
   row: number;
-}): CellId[] {
+}): CellCoords[] {
   return [
-    getCellId({ col, row: row - 1 }),
-    getCellId({ col: col + 1, row }),
-    getCellId({ col, row: row + 1 }),
-    getCellId({ col: col - 1, row }),
+    makeCellCoordsByCoords({ col, row: row - 1 }),
+    makeCellCoordsByCoords({ col: col + 1, row }),
+    makeCellCoordsByCoords({ col, row: row + 1 }),
+    makeCellCoordsByCoords({ col: col - 1, row }),
   ];
 }
 
 const BOUND = 2 ** 12;
 const HALF_BOUND = BOUND / 2;
 
-export function getCellId({ row, col }: CellCoords): CellId {
+export function getCellId({ col, row }: { col: number; row: number }): CellId {
   return ((row + HALF_BOUND) << 12) + col + HALF_BOUND;
 }
 
 export function cellIdToCoords(cellId: CellId): CellCoords {
   return {
+    cellId,
     row: (cellId >> 12) - HALF_BOUND,
     col: (cellId & 0x0fff) - HALF_BOUND,
   };
@@ -64,28 +83,38 @@ export function putCardInGame(
   card: InGameCard,
   coords: CellCoords,
 ): void {
-  const zone = {
+  const zone: Zone = {
     card,
     cardTypeId: card.cardTypeId,
-    coordinates: coords,
+    coords,
   };
 
-  const cellId = getCellId(zone.coordinates);
+  const cellId = zone.coords.cellId;
 
   gameState.potentialZones.delete(cellId);
 
   gameState.zones.set(cellId, zone);
 
-  const around = getAroundCellIds(zone.coordinates);
-  for (const cellId of around) {
-    if (!gameState.zones.has(cellId)) {
-      gameState.potentialZones.add(cellId);
+  const around = getAroundCells(zone.coords);
+  for (const cell of around) {
+    if (!gameState.zones.has(cell.cellId)) {
+      gameState.potentialZones.add(cell.cellId);
     }
   }
 
   gameState.cardPool.pop();
   gameState.activePlayer =
     (gameState.activePlayer + 1) % gameState.players.length;
+
+  checkCompletion(gameState, cellId);
+}
+
+function checkCompletion(gameState: GameState, cellId: CellId): void {
+  const zone = gameState.zones.get(cellId)!;
+  const { northZone, westZone, southZone, eastZone } = getAroundZones(
+    gameState.zones,
+    zone.coords,
+  );
 }
 
 export function canBePlaced(
@@ -93,18 +122,28 @@ export function canBePlaced(
   card: InGameCard,
   coords: CellCoords,
 ): boolean {
-  const [northId, eastId, southId, westId] = getAroundCellIds(coords);
-  const northCard = zones.get(northId);
-  const eastCard = zones.get(eastId);
-  const southCard = zones.get(southId);
-  const westCard = zones.get(westId);
+  const { northZone, westZone, southZone, eastZone } = getAroundZones(
+    zones,
+    coords,
+  );
 
   return (
-    (!northCard || card.sides[0] === northCard.card.sides[2]) &&
-    (!eastCard || card.sides[1] === eastCard.card.sides[3]) &&
-    (!southCard || card.sides[2] === southCard.card.sides[0]) &&
-    (!westCard || card.sides[3] === westCard.card.sides[1])
+    (!northZone || card.sides[0] === northZone.card.sides[2]) &&
+    (!eastZone || card.sides[1] === eastZone.card.sides[3]) &&
+    (!southZone || card.sides[2] === southZone.card.sides[0]) &&
+    (!westZone || card.sides[3] === westZone.card.sides[1])
   );
+}
+
+function getAroundZones(zones: Zones, coords: CellCoords) {
+  const [north, east, south, west] = getAroundCells(coords);
+
+  return {
+    northZone: zones.get(north.cellId),
+    eastZone: zones.get(east.cellId),
+    southZone: zones.get(south.cellId),
+    westZone: zones.get(west.cellId),
+  };
 }
 
 export function fitNextCard(gameState: GameState):

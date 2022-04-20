@@ -11,9 +11,10 @@ import {
   cellIdToCoords,
   fitNextCard,
   generateCardPool,
-  getAroundCellIds,
+  getAroundCells,
   getCellId,
   instantiateCard,
+  makeCellCoordsByCoords,
   putCardInGame,
 } from '../../utils/logic';
 import { CardPool } from '../CardPool';
@@ -28,10 +29,10 @@ const HEIGHT = 600;
 const SHOW_ALL_CARDS = false;
 const ENABLE_LOADING = false;
 
-const initialCoords: CellCoords = {
+const initialCoords: CellCoords = makeCellCoordsByCoords({
   col: 0,
   row: 0,
-};
+});
 
 function getAllCards(): [CellId, Zone][] {
   if (!SHOW_ALL_CARDS) {
@@ -39,19 +40,19 @@ function getAllCards(): [CellId, Zone][] {
   }
 
   return cards.map((cardInfo, i): [CellId, Zone] => {
-    const coordinates = {
+    const coordinates = makeCellCoordsByCoords({
       col: i % 6,
       row: Math.floor(i / 6),
-    };
+    });
 
     const card = instantiateCard(cardsById[cardInfo.id]);
 
     return [
-      getCellId(coordinates),
+      coordinates.cellId,
       {
         cardTypeId: cardInfo.id,
         card,
-        coordinates,
+        coords: coordinates,
       },
     ];
   });
@@ -99,16 +100,18 @@ export function GameBoard({ game }: Props) {
       gameId: game.gameId,
       zones: new Map<CellId, Zone>([
         [
-          getCellId(initialCoords),
+          initialCoords.cellId,
           {
             cardTypeId: initialCard.cardTypeId,
             card: initialCard,
-            coordinates: initialCoords,
+            coords: initialCoords,
           },
         ],
         ...getAllCards(),
       ]),
-      potentialZones: new Set(getAroundCellIds({ col: 0, row: 0 })),
+      potentialZones: new Set(
+        getAroundCells({ col: 0, row: 0 }).map((coords) => coords.cellId),
+      ),
       cardPool,
       activePlayer: 0,
       players: game.players,

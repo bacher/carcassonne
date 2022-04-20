@@ -11,7 +11,7 @@ export type Point = {
 export type Zone = {
   cardTypeId: CardTypeId;
   card: InGameCard;
-  coordinates: CellCoords;
+  coords: CellCoords;
 };
 
 export type Zones = Map<number, Zone>;

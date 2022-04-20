@@ -1,13 +1,8 @@
-import type { GameState, Point, Zone } from '../data/types';
-import {
-  Building,
-  CardTypeInfo,
-  cardsById,
-  SideType,
-  InGameCard,
-} from '../data/cards';
-import { cellIdToCoords, getCellId } from './logic';
 import { last } from 'lodash';
+
+import type { GameState, Point, Zone } from '../data/types';
+import { Building, SideType, InGameCard } from '../data/cards';
+import { cellIdToCoords, getCellId } from './logic';
 
 export const CARD_SIZE = 50;
 
@@ -44,8 +39,8 @@ export function render(
 
   for (const zone of gameState.zones.values() as unknown as Zone[]) {
     const topLeft = {
-      x: zone.coordinates.col * CELL_SIZE,
-      y: zone.coordinates.row * CELL_SIZE,
+      x: zone.coords.col * CELL_SIZE,
+      y: zone.coords.row * CELL_SIZE,
     };
 
     drawCard(ctx, {

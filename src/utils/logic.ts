@@ -1,6 +1,12 @@
 import { shuffle } from 'lodash';
 
-import { cards, cardsById, CardTypeInfo, InGameCard } from '../data/cards';
+import {
+  cards,
+  cardsById,
+  CardTypeInfo,
+  InGameCard,
+  SideType,
+} from '../data/cards';
 import { GameState, Zone, Zones } from '../data/types';
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
@@ -109,12 +115,177 @@ export function putCardInGame(
   checkCompletion(gameState, cellId);
 }
 
-function checkCompletion(gameState: GameState, cellId: CellId): void {
+function checkCompletion(gameState: GameState, cellId: CellId) {
   const zone = gameState.zones.get(cellId)!;
-  const { northZone, westZone, southZone, eastZone } = getAroundZones(
-    gameState.zones,
-    zone.coords,
-  );
+
+  checkCompletionPartial(gameState, zone, SideType.TOWN);
+  checkCompletionPartial(gameState, zone, SideType.ROAD);
+}
+
+const counterSide = [2, 3, 0, 1];
+
+function getNeighbors(
+  sides: number[],
+  coords: CellCoords,
+): { side: number; coords: CellCoords }[] {
+  return sides.map((side) => {
+    switch (side) {
+      case 0:
+        return {
+          side,
+          coords: makeCellCoordsByCoords({
+            col: coords.col,
+            row: coords.row - 1,
+          }),
+        };
+      case 1:
+        return {
+          side,
+          coords: makeCellCoordsByCoords({
+            col: coords.col + 1,
+            row: coords.row,
+          }),
+        };
+      case 2:
+        return {
+          side,
+          coords: makeCellCoordsByCoords({
+            col: coords.col,
+            row: coords.row + 1,
+          }),
+        };
+      case 3:
+        return {
+          side,
+          coords: makeCellCoordsByCoords({
+            col: coords.col - 1,
+            row: coords.row,
+          }),
+        };
+      default:
+        throw new Error();
+    }
+  });
+}
+
+function checkCompletionPartial(
+  gameState: GameState,
+  zone: Zone,
+  sideType: SideType.TOWN | SideType.ROAD,
+): void {
+  const { card, coords } = zone;
+  const groups: { sides: number[]; zoneUnionId: number }[] = [];
+
+  for (let i = 0; i < 4; i++) {
+    if (card.sides[i] === sideType) {
+      const zoneUnionId = card.connects[i];
+
+      const group =
+        zoneUnionId !== 0 &&
+        groups.find((group) => group.zoneUnionId === zoneUnionId);
+
+      if (group) {
+        group.sides.push(i);
+      } else {
+        groups.push({
+          sides: [i],
+          zoneUnionId,
+        });
+      }
+    }
+  }
+
+  nextgroup: for (const group of groups) {
+    const neighbors = getNeighbors(group.sides, coords);
+
+    const stopBarrier = new Set(
+      group.sides.map((side) => `${coords.cellId}:${side}`),
+    );
+
+    const cellIds = new Set<CellId>([coords.cellId]);
+
+    for (const { side, coords } of neighbors) {
+      const nextZone = gameState.zones.get(coords.cellId);
+
+      if (!nextZone) {
+        continue nextgroup;
+      }
+
+      if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+        continue;
+      }
+
+      const result = checkCompletionExtend(
+        gameState,
+        nextZone,
+        counterSide[side],
+        sideType,
+        stopBarrier,
+        cellIds,
+      );
+
+      if (!result) {
+        continue nextgroup;
+      }
+    }
+
+    console.log('COMPLETE! length:', cellIds.size);
+  }
+
+  console.log('CHECKING DONE');
+}
+
+function checkCompletionExtend(
+  gameState: GameState,
+  zone: Zone,
+  comeFrom: number,
+  sideType: SideType.TOWN | SideType.ROAD,
+  stopBarrier: Set<string>,
+  cellIds: Set<CellId>,
+): boolean {
+  cellIds.add(zone.coords.cellId);
+
+  const unionId = zone.card.connects[comeFrom];
+
+  if (unionId === 0) {
+    return true;
+  }
+
+  const sides = [];
+
+  for (let i = 0; i < 4; i++) {
+    if (i !== comeFrom && zone.card.connects[i] === unionId) {
+      sides.push(i);
+      stopBarrier.add(`${zone.coords.cellId}:${i}`);
+    }
+  }
+
+  const neighbors = getNeighbors(sides, zone.coords);
+
+  for (const { side, coords } of neighbors) {
+    const nextZone = gameState.zones.get(coords.cellId);
+
+    if (!nextZone) {
+      return false;
+    }
+
+    if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+      const results = checkCompletionExtend(
+        gameState,
+        nextZone,
+        counterSide[side],
+        sideType,
+        stopBarrier,
+        cellIds,
+      );
+
+      if (!results) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 export function canBePlaced(

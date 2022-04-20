@@ -120,7 +120,8 @@ export function GameBoard({ game }: Props) {
 
   useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
 
-  console.log(gameState);
+  // @ts-ignore
+  window.gameState = gameState;
 
   const nextCard = last(gameState.cardPool);
 

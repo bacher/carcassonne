@@ -7,6 +7,7 @@ import {
   InGameCard,
 } from '../data/cards';
 import { cellIdToCoords, getCellId } from './logic';
+import { last } from 'lodash';
 
 const CARD_SIZE = 50;
 
@@ -27,12 +28,12 @@ const GRID_SIZE = 25;
 
 export function render(
   ctx: CanvasRenderingContext2D,
-  state: GameState,
+  gameState: GameState,
   {
     size: { width, height },
     viewport,
-    hoverCell,
-  }: { size: Size; viewport: Point; hoverCell: number | undefined },
+    hoverCellId,
+  }: { size: Size; viewport: Point; hoverCellId: number | undefined },
 ) {
   ctx.clearRect(0, 0, width, height);
 
@@ -41,7 +42,7 @@ export function render(
 
   drawGrid(ctx);
 
-  for (const zone of state.zones.values() as unknown as Zone[]) {
+  for (const zone of gameState.zones.values() as unknown as Zone[]) {
     const topLeft = {
       x: zone.coordinates.col * CELL_SIZE,
       y: zone.coordinates.row * CELL_SIZE,
@@ -53,7 +54,7 @@ export function render(
     });
   }
 
-  for (const potentialCellId of Array.from(state.potentialZones.values())) {
+  for (const potentialCellId of Array.from(gameState.potentialZones.values())) {
     const coords = cellIdToCoords(potentialCellId);
 
     const topLeft = {
@@ -64,40 +65,41 @@ export function render(
     drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, '#cdf');
   }
 
-  if (hoverCell) {
-    const { col, row } = cellIdToCoords(hoverCell);
+  if (hoverCellId) {
+    const { col, row } = cellIdToCoords(hoverCellId);
 
     const topLeft = {
       x: col * CELL_SIZE,
       y: row * CELL_SIZE,
     };
 
-    drawRect(
-      ctx,
-      topLeft,
-      { width: CARD_SIZE, height: CARD_SIZE },
-      'rgba(255,0,0,0.1)',
-    );
+    if (!gameState.zones.has(hoverCellId)) {
+      const nextCard = last(gameState.cardPool);
+
+      let fillColor: string;
+
+      if (nextCard) {
+        drawCard(ctx, { topLeft, card: nextCard });
+
+        if (gameState.potentialZones.has(hoverCellId)) {
+          fillColor = 'rgba(255,255,255,0.2)';
+        } else {
+          fillColor = 'rgba(255,255,255,0.6)';
+        }
+      } else {
+        fillColor = 'rgba(255,0,0,0.1)';
+      }
+
+      drawRect(
+        ctx,
+        topLeft,
+        { width: CARD_SIZE, height: CARD_SIZE },
+        fillColor,
+      );
+    }
   }
 
   ctx.restore();
-
-  const lastCard = state.cardPool[state.cardPool.length - 1];
-
-  if (lastCard) {
-    ctx.save();
-    drawRect(
-      ctx,
-      { x: width - CARD_SIZE - 30, y: 10 },
-      { width: CARD_SIZE + 20, height: CARD_SIZE + 20 },
-      '#999',
-    );
-    drawCard(ctx, {
-      topLeft: { x: width - CARD_SIZE - 20, y: 20 },
-      card: lastCard,
-    });
-    ctx.restore();
-  }
 }
 
 export function drawCard(

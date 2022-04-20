@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
+import cn from 'classnames';
+
 import type { InGameCard } from '../../data/cards';
 import { Building, cards, SideType } from '../../data/cards';
 import { CardTypeId } from '../../data/types';
 import { drawCard } from '../../utils/render';
 
 import styles from './CardPool.module.css';
+import { last } from 'lodash';
 
 type Props = {
   cardPool: InGameCard[];
@@ -23,6 +26,9 @@ export function CardPool({ cardPool, onChoose }: Props) {
     towns: true,
     monastery: true,
   });
+  const [isShowCount, setShowCount] = useState(false);
+
+  const nextCard = last(cardPool);
 
   const groupedCards = useMemo<GroupedItem[]>(() => {
     const store: Record<CardTypeId, GroupedItem> = {};
@@ -49,7 +55,7 @@ export function CardPool({ cardPool, onChoose }: Props) {
     list.sort(
       (a, b) =>
         cards.findIndex((card) => card.id === a.card.cardTypeId) -
-        cards.findIndex((card) => card.id === b.card.cardTypeId)
+        cards.findIndex((card) => card.id === b.card.cardTypeId),
     );
 
     return list;
@@ -69,10 +75,10 @@ export function CardPool({ cardPool, onChoose }: Props) {
         return item.card.sides.some(
           (side) =>
             (filters.roads && side === SideType.ROAD) ||
-            (filters.towns && side === SideType.TOWN)
+            (filters.towns && side === SideType.TOWN),
         );
       }),
-    [groupedCards, filters.roads, filters.towns, filters.monastery]
+    [groupedCards, filters.roads, filters.towns, filters.monastery],
   );
 
   return (
@@ -122,6 +128,10 @@ export function CardPool({ cardPool, onChoose }: Props) {
         {filteredList.map((item) => (
           <div
             key={item.card.cardTypeId}
+            className={cn(styles.itemWrapper, {
+              [styles.itemWrapperCurrent]:
+                nextCard && item.card.cardTypeId === nextCard.cardTypeId,
+            })}
             onClick={(event) => {
               event.preventDefault();
               onChoose(item.card);
@@ -133,8 +143,25 @@ export function CardPool({ cardPool, onChoose }: Props) {
               height={50}
               className={styles.itemCanvas}
             />
+            {isShowCount && (
+              <div className={styles.counter}>
+                <span className={styles.number}>{item.count}</span>
+              </div>
+            )}
           </div>
         ))}
+      </div>
+      <div className={styles.footer}>
+        <label className={styles.label}>
+          <input
+            type="checkbox"
+            checked={isShowCount}
+            onChange={() => {
+              setShowCount(!isShowCount);
+            }}
+          />
+          Display count
+        </label>
       </div>
     </div>
   );

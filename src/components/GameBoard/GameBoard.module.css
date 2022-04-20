@@ -9,6 +9,10 @@
   padding: 8px;
 }
 
+.canvasWrapper {
+  position: relative;
+}
+
 .canvas {
   width: 800px;
   height: 600px;

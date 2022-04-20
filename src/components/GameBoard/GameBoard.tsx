@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { last } from 'lodash';
 
 import { getCellByPoint, render } from '../../utils/render';
 import { GameState, Player, Point, Zone } from '../../data/types';
@@ -19,6 +20,7 @@ import { CardPool } from '../CardPool';
 import { PlayersList } from '../PlayersList';
 import { cards, cardsById } from '../../data/cards';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
+import { NextCard } from '../NextCard';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -114,12 +116,14 @@ export function GameBoard({ game }: Props) {
 
   console.log(gameState);
 
+  const nextCard = last(gameState.cardPool);
+
   function renderBoard() {
     const ctx = canvasRef.current!.getContext('2d')!;
     render(ctx, gameState, {
       size: { width: WIDTH, height: HEIGHT },
       viewport: viewport.pos,
-      hoverCell: effects.hoverCellId,
+      hoverCellId: effects.hoverCellId,
     });
 
     window.setTimeout(() => {
@@ -259,24 +263,32 @@ export function GameBoard({ game }: Props) {
 
   return (
     <div className={styles.root}>
-      <div
-        onMouseDown={(event) => {
-          if (event.button !== 0) {
-            return;
-          }
-
-          event.preventDefault();
-          dragStartPos.x = event.screenX;
-          dragStartPos.y = event.screenY;
-          setMouseDown(true);
-        }}
-      >
+      <div className={styles.canvasWrapper}>
         <canvas
           ref={canvasRef}
           className={styles.canvas}
           width={WIDTH}
           height={HEIGHT}
+          onMouseDown={(event) => {
+            if (event.button !== 0) {
+              return;
+            }
+
+            event.preventDefault();
+            dragStartPos.x = event.screenX;
+            dragStartPos.y = event.screenY;
+            setMouseDown(true);
+          }}
         />
+        {nextCard && (
+          <NextCard
+            card={nextCard}
+            onChange={() => {
+              renderBoard();
+              forceUpdate();
+            }}
+          />
+        )}
       </div>
       <div className={styles.rightPanel}>
         <PlayersList
@@ -307,44 +319,29 @@ export function GameBoard({ game }: Props) {
             type="button"
             onClick={(event) => {
               event.preventDefault();
-              const nextCard =
-                gameState.cardPool[gameState.cardPool.length - 1];
-
-              rotateCard(nextCard);
-              renderBoard();
+              setShowCardPool(!isShowCardPool);
             }}
           >
-            Rotate current card
-          </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              setShowCardPool(true);
-            }}
-          >
-            Choose next card
+            {isShowCardPool ? 'Hide all cards' : 'Show all cards'}
           </button>
         </div>
         {isShowCardPool && (
-          <div>
-            <CardPool
-              cardPool={gameState.cardPool}
-              onChoose={(card) => {
-                const index = gameState.cardPool.indexOf(card);
-                if (index === -1) {
-                  throw new Error();
-                }
+          <CardPool
+            cardPool={gameState.cardPool}
+            onChoose={(card) => {
+              const index = gameState.cardPool.indexOf(card);
+              if (index === -1) {
+                throw new Error();
+              }
 
-                const pool = Array.from(gameState.cardPool);
-                pool.splice(index, 1);
-                pool.push(card);
-                gameState.cardPool = pool;
-                forceUpdate();
-                renderBoard();
-              }}
-            />
-          </div>
+              const pool = Array.from(gameState.cardPool);
+              pool.splice(index, 1);
+              pool.push(card);
+              gameState.cardPool = pool;
+              forceUpdate();
+              renderBoard();
+            }}
+          />
         )}
       </div>
     </div>

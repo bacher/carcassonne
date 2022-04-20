@@ -7,10 +7,11 @@ import { rotateCard } from '../../utils/logic';
 
 type Props = {
   card: InGameCard;
+  onHoverChange: (isHover: boolean) => void;
   onChange: () => void;
 };
 
-export function NextCard({ card, onChange }: Props) {
+export function NextCard({ card, onHoverChange, onChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -21,7 +22,15 @@ export function NextCard({ card, onChange }: Props) {
   }, [card, card.sides, card.connects]);
 
   return (
-    <div className={styles.root}>
+    <div
+      className={styles.root}
+      onMouseEnter={() => {
+        onHoverChange(true);
+      }}
+      onMouseLeave={() => {
+        onHoverChange(false);
+      }}
+    >
       <canvas ref={canvasRef} width={50} height={50} />
       <div className={styles.controls}>
         <button

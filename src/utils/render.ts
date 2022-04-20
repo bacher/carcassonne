@@ -9,7 +9,7 @@ import {
 import { cellIdToCoords, getCellId } from './logic';
 import { last } from 'lodash';
 
-const CARD_SIZE = 50;
+export const CARD_SIZE = 50;
 
 const GRID_GAP = 1;
 

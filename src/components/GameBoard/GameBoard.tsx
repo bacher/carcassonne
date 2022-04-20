@@ -15,12 +15,12 @@ import {
   getCellId,
   instantiateCard,
   putCardInGame,
-  rotateCard,
 } from '../../utils/logic';
 import { CardPool } from '../CardPool';
 import { PlayersList } from '../PlayersList';
 import { cards, cardsById } from '../../data/cards';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
+import { useStateRef } from '../../hooks/useStateRef';
 import { NextCard } from '../NextCard';
 
 const WIDTH = 800;
@@ -65,7 +65,6 @@ type Props = {
 };
 
 const enum MouseState {
-  NONE,
   HOVERING,
   DRAGGING,
 }
@@ -83,6 +82,7 @@ export function GameBoard({ game }: Props) {
   const forceUpdate = useForceUpdate();
   const mousePos = useMemo<Point>(() => ({ x: -999, y: -999 }), []);
   const [isMouseDown, setMouseDown] = useState(false);
+  const [isNextCardHoverRef, setNextCardHover] = useStateRef(false);
   const effects = useMemo<Effects>(() => ({ hoverCellId: undefined }), []);
   const gameState = useMemo<GameState>(() => {
     if (ENABLE_LOADING) {
@@ -115,6 +115,8 @@ export function GameBoard({ game }: Props) {
     };
   }, []);
 
+  useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
+
   console.log(gameState);
 
   const nextCard = last(gameState.cardPool);
@@ -127,9 +129,11 @@ export function GameBoard({ game }: Props) {
       hoverCellId: effects.hoverCellId,
     });
 
-    window.setTimeout(() => {
-      saveGameState();
-    }, 0);
+    if (ENABLE_LOADING) {
+      window.setTimeout(() => {
+        saveGameState();
+      }, 0);
+    }
   }
 
   useEffect(renderBoard, [gameState]);
@@ -173,7 +177,13 @@ export function GameBoard({ game }: Props) {
 
     let hoverCell: number | undefined;
 
-    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
+    if (
+      !isNextCardHoverRef.current &&
+      x >= 0 &&
+      x < WIDTH &&
+      y >= 0 &&
+      y < HEIGHT
+    ) {
       hoverCell = getCellByPoint(
         { size: { width: WIDTH, height: HEIGHT }, viewport: viewport.pos },
         { x, y },
@@ -286,6 +296,7 @@ export function GameBoard({ game }: Props) {
         {nextCard && (
           <NextCard
             card={nextCard}
+            onHoverChange={setNextCardHover}
             onChange={() => {
               renderBoard();
               forceUpdate();

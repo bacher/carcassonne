@@ -19,10 +19,11 @@ import {
 } from '../../utils/logic';
 import { CardPool } from '../CardPool';
 import { PlayersList } from '../PlayersList';
-import { cards, cardsById } from '../../data/cards';
+import { cards, cardsById, InGameCard } from '../../data/cards';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { useStateRef } from '../../hooks/useStateRef';
 import { NextCard } from '../NextCard';
+import { PutPeasant } from '../PutPeasant';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -117,6 +118,10 @@ export function GameBoard({ game }: Props) {
       players: game.players,
     };
   }, []);
+  const [putPeasantState, setPutPeasantState] = useState<
+    { card: InGameCard } | undefined
+  >({ card: gameState.cardPool[0] });
+  // >();
 
   useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
 
@@ -358,6 +363,7 @@ export function GameBoard({ game }: Props) {
           />
         )}
       </div>
+      {putPeasantState && <PutPeasant card={putPeasantState.card} />}
     </div>
   );
 }

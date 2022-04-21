@@ -43,7 +43,7 @@ export function CardPool({ cardPool, onChoose }: Props) {
           onRef: (el) => {
             if (el) {
               const ctx = el.getContext('2d')!;
-              drawCard(ctx, { topLeft: { x: 0, y: 0 }, card });
+              drawCard(ctx, { card });
             }
           },
         };

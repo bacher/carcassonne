@@ -21,6 +21,13 @@ const FIELD_STYLE = '#9cffad';
 
 const GRID_SIZE = 25;
 
+const arcs: Record<string, [number, number]> = {
+  '0x1': [(1 / 2) * Math.PI, Math.PI],
+  '1x2': [(3 / 4) * Math.PI, 2 * Math.PI],
+  '2x3': [Math.PI, (3 / 4) * Math.PI],
+  '0x3': [0, (1 / 2) * Math.PI],
+};
+
 export function render(
   ctx: CanvasRenderingContext2D,
   gameState: GameState,
@@ -100,10 +107,10 @@ export function render(
 export function drawCard(
   ctx: CanvasRenderingContext2D,
   {
-    topLeft,
+    topLeft = { x: 0, y: 0 },
     card,
   }: {
-    topLeft: Point;
+    topLeft?: Point;
     card: InGameCard;
   },
 ): void {
@@ -116,12 +123,11 @@ export function drawCard(
 
   drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, FIELD_STYLE);
 
-  // Draw roads and fields
+  // Draw roads
   for (let i = 0; i < sides.length; i++) {
     const side = sides[i];
 
     switch (side) {
-      case SideType.GROUND:
       case SideType.ROAD: {
         if (side === SideType.ROAD) {
           const roadStart = getSideCenter(topLeft, i);
@@ -129,8 +135,30 @@ export function drawCard(
 
           if (connect) {
             for (let j = i + 1; j < connects.length; j++) {
-              if (i !== j && connect === connects[j]) {
-                drawLine(ctx, roadStart, getSideCenter(topLeft, j), '#000');
+              if (connect === connects[j]) {
+                const roadEnd = getSideCenter(topLeft, j);
+
+                if (roadStart.x === roadEnd.x || roadStart.y === roadEnd.y) {
+                  drawLine(ctx, roadStart, roadEnd, '#000');
+                } else {
+                  const arcCenter = {
+                    x: roadStart.x !== center.x ? roadStart.x : roadEnd.x,
+                    y: roadStart.y !== center.y ? roadStart.y : roadEnd.y,
+                  };
+
+                  const [angleStart, angleEnd] = arcs[`${i}x${j}`];
+
+                  ctx.beginPath();
+                  ctx.arc(
+                    arcCenter.x,
+                    arcCenter.y,
+                    CARD_SIZE / 2,
+                    angleStart,
+                    angleEnd,
+                  );
+                  ctx.strokeStyle = '#000';
+                  ctx.stroke();
+                }
               }
             }
           } else {

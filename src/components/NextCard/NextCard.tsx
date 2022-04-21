@@ -16,7 +16,6 @@ export function NextCard({ card, onHoverChange, onChange }: Props) {
 
   useEffect(() => {
     drawCard(canvasRef.current!.getContext('2d')!, {
-      topLeft: { x: 0, y: 0 },
       card,
     });
   }, [card, card.sides, card.connects]);

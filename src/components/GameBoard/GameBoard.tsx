@@ -273,6 +273,20 @@ export function GameBoard({ game }: Props) {
               return;
             }
 
+            const player = gameState.players[gameState.activePlayer];
+
+            if (!player.peasantsCount) {
+              putCardInGame(gameState, {
+                card,
+                coords,
+                peasantPlace: undefined,
+              });
+
+              forceUpdate();
+              renderBoard();
+              return;
+            }
+
             setPutPeasantState({
               card,
               resolveCallback: (results) => {

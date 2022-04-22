@@ -96,6 +96,7 @@ export function putCardInGame(
     peasantPlace: number | undefined;
   },
 ): void {
+  const { cellId } = coords;
   const zone: Zone = {
     card,
     cardTypeId: card.cardTypeId,
@@ -104,10 +105,11 @@ export function putCardInGame(
     peasantPlace,
   };
 
-  const cellId = zone.coords.cellId;
+  if (peasantPlace !== undefined) {
+    gameState.players[gameState.activePlayer].peasantsCount -= 1;
+  }
 
   gameState.potentialZones.delete(cellId);
-
   gameState.zones.set(cellId, zone);
 
   const around = getAroundCells(zone.coords);
@@ -121,14 +123,47 @@ export function putCardInGame(
   gameState.activePlayer =
     (gameState.activePlayer + 1) % gameState.players.length;
 
-  checkCompletion(gameState, cellId);
+  checkCompletion(gameState, zone);
 }
 
-function checkCompletion(gameState: GameState, cellId: CellId) {
-  const zone = gameState.zones.get(cellId)!;
+function checkCompletion(gameState: GameState, zone: Zone): void {
+  const towns = checkCompletionPartial(gameState, zone, SideType.TOWN);
 
-  checkCompletionPartial(gameState, zone, SideType.TOWN);
-  checkCompletionPartial(gameState, zone, SideType.ROAD);
+  for (const town of towns) {
+    const townCellIds = new Set<number>();
+    const playerPeasants = new Map<PlayerIndex, number>();
+    let maxPeasants = 0;
+    let totalScore = 0;
+
+    for (const { zone, ownPlayerIndex } of town.zones) {
+      const { cellId } = zone.coords;
+
+      if (ownPlayerIndex !== undefined) {
+        const peasants = (playerPeasants.get(ownPlayerIndex) ?? 0) + 1;
+
+        if (peasants > maxPeasants) {
+          maxPeasants = peasants;
+        }
+
+        playerPeasants.set(ownPlayerIndex, peasants);
+      }
+
+      if (!townCellIds.has(cellId)) {
+        totalScore += zone.card.isPrimeTown ? 4 : 2;
+        townCellIds.add(cellId);
+      }
+    }
+
+    for (const [playerIndex, count] of Array.from(playerPeasants.entries())) {
+      if (count === maxPeasants) {
+        console.log(`Give Player[${playerIndex}] ${totalScore} points.`);
+        gameState.players[playerIndex].score += totalScore;
+      }
+      gameState.players[playerIndex].peasantsCount += count;
+    }
+  }
+
+  const roads = checkCompletionPartial(gameState, zone, SideType.ROAD);
 }
 
 const counterSide = [2, 3, 0, 1];
@@ -177,11 +212,31 @@ function getNeighbors(
   });
 }
 
+function getZonePartOwner(
+  zone: Zone,
+  sides: number[],
+): PlayerIndex | undefined {
+  return zone.playerIndex !== undefined &&
+    zone.peasantPlace !== undefined &&
+    sides.includes(zone.peasantPlace)
+    ? zone.playerIndex
+    : undefined;
+}
+
+type CompleteResults = { zones: CompletionZone[] }[];
+
+type CompletionZone = {
+  zone: Zone;
+  ownPlayerIndex: PlayerIndex | undefined;
+};
+
 function checkCompletionPartial(
   gameState: GameState,
   zone: Zone,
   sideType: SideType.TOWN | SideType.ROAD,
-): void {
+): CompleteResults {
+  const results: CompleteResults = [];
+
   const { card, coords } = zone;
   const groups: { sides: number[]; zoneUnionId: number }[] = [];
 
@@ -211,7 +266,12 @@ function checkCompletionPartial(
       group.sides.map((side) => `${coords.cellId}:${side}`),
     );
 
-    const cellIds = new Set<CellId>([coords.cellId]);
+    const zones: CompletionZone[] = [
+      {
+        zone,
+        ownPlayerIndex: getZonePartOwner(zone, group.sides),
+      },
+    ];
 
     for (const { side, coords } of neighbors) {
       const nextZone = gameState.zones.get(coords.cellId);
@@ -230,7 +290,7 @@ function checkCompletionPartial(
         counterSide[side],
         sideType,
         stopBarrier,
-        cellIds,
+        zones,
       );
 
       if (!result) {
@@ -238,10 +298,14 @@ function checkCompletionPartial(
       }
     }
 
-    console.log('COMPLETE! length:', cellIds.size);
+    results.push({
+      zones,
+    });
+    console.log('COMPLETED! ==>', zones);
   }
 
   console.log('CHECKING DONE');
+  return results;
 }
 
 function checkCompletionExtend(
@@ -250,23 +314,27 @@ function checkCompletionExtend(
   comeFrom: number,
   sideType: SideType.TOWN | SideType.ROAD,
   stopBarrier: Set<string>,
-  cellIds: Set<CellId>,
+  zones: CompletionZone[],
 ): boolean {
-  cellIds.add(zone.coords.cellId);
-
+  const sides = [];
   const unionId = zone.card.connects[comeFrom];
 
-  if (unionId === 0) {
-    return true;
+  if (unionId !== 0) {
+    for (let i = 0; i < 4; i++) {
+      if (i !== comeFrom && zone.card.connects[i] === unionId) {
+        sides.push(i);
+        stopBarrier.add(`${zone.coords.cellId}:${i}`);
+      }
+    }
   }
 
-  const sides = [];
+  zones.push({
+    zone,
+    ownPlayerIndex: getZonePartOwner(zone, [comeFrom, ...sides]),
+  });
 
-  for (let i = 0; i < 4; i++) {
-    if (i !== comeFrom && zone.card.connects[i] === unionId) {
-      sides.push(i);
-      stopBarrier.add(`${zone.coords.cellId}:${i}`);
-    }
+  if (sides.length === 0) {
+    return true;
   }
 
   const neighbors = getNeighbors(sides, zone.coords);
@@ -285,7 +353,7 @@ function checkCompletionExtend(
         counterSide[side],
         sideType,
         stopBarrier,
-        cellIds,
+        zones,
       );
 
       if (!results) {

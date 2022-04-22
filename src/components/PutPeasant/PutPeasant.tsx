@@ -58,6 +58,7 @@ export function PutPeasant({ card, onChoose, onCancel }: Props) {
           />
           {Array.from({ length: 4 }).map((value, index) => (
             <PeasantRadio
+              key={index}
               index={index}
               isSelected={peasant === index}
               onSelect={setPeasant}

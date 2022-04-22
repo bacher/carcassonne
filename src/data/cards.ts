@@ -24,11 +24,20 @@ type CardTypeInfoPartial = CardBase & {
 
 export type CardTypeInfo = CardTypeInfoPartial & {
   maxOrientation: number;
+  unions: UnionObject[];
 };
+
+export const enum Side {
+  UP,
+  RIGHT,
+  DOWN,
+  LEFT,
+}
 
 export type InGameCard = CardBase & {
   cardTypeId: CardTypeId;
   isPrimeTown: boolean;
+  unions: { union: Side[] }[];
 };
 
 const cardsPartial: CardTypeInfoPartial[] = [
@@ -187,8 +196,14 @@ const cardsPartial: CardTypeInfoPartial[] = [
 ];
 
 export const cards: CardTypeInfo[] = cardsPartial.map((card) => {
-  let maxOrientation = 4;
+  return {
+    ...card,
+    maxOrientation: calMaxOrientation(card),
+    unions: calcUnions(card),
+  };
+});
 
+function calMaxOrientation(card: CardTypeInfoPartial): number {
   if (
     card.sides[0] === card.sides[1] &&
     card.sides[0] === card.sides[2] &&
@@ -197,7 +212,7 @@ export const cards: CardTypeInfo[] = cardsPartial.map((card) => {
     card.connects[0] === card.connects[2] &&
     card.connects[0] === card.connects[3]
   ) {
-    maxOrientation = 1;
+    return 1;
   }
 
   if (
@@ -206,11 +221,47 @@ export const cards: CardTypeInfo[] = cardsPartial.map((card) => {
     card.connects[0] === card.connects[2] &&
     card.connects[1] === card.connects[3]
   ) {
-    maxOrientation = 2;
+    return 2;
   }
 
-  return { ...card, maxOrientation };
-});
+  return 4;
+}
+
+type UnionObject = {
+  union: Side[];
+};
+
+function calcUnions(card: CardTypeInfoPartial): UnionObject[] {
+  if (card.connects.length !== 4) {
+    throw new Error();
+  }
+
+  const alone: UnionObject[] = [];
+  const unions = new Map<number, UnionObject>();
+
+  for (let i = 0; i < 4; i++) {
+    const unionId = card.connects[i];
+
+    if (unionId === 0) {
+      alone.push({ union: [i] });
+      continue;
+    }
+
+    const unionObject = unions.get(unionId);
+
+    if (unionObject) {
+      unionObject.union.push(i);
+    } else {
+      unions.set(unionId, { union: [i] });
+    }
+  }
+
+  const allUnions = [...alone, ...Array.from(unions.values())];
+
+  allUnions.sort((a, b) => a.union[0] - b.union[0]);
+
+  return allUnions;
+}
 
 export const cardsById = cards.reduce((acc, card) => {
   acc[card.id] = card;

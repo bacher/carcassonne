@@ -22,6 +22,7 @@ export function instantiateCard(card: CardTypeInfo): InGameCard {
     sides: card.sides,
     connects: card.connects,
     building: card.building,
+    unions: card.unions,
     isPrimeTown: Boolean(card.isPrimeTown),
   };
 }
@@ -34,6 +35,9 @@ export function rotateCard(card: InGameCard): void {
     card.connects[1],
     card.connects[2],
   ];
+  card.unions = card.unions.map(({ union }) => ({
+    union: union.map((side) => (side + 1) % 4),
+  }));
 }
 
 export type CellId = number;

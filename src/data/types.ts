@@ -10,12 +10,22 @@ export type Point = {
 
 export type PlayerIndex = number;
 
+export const enum GameObjectType {
+  ROAD = 1,
+  TOWN,
+  MONASTERY,
+}
+
 export type Zone = {
   cardTypeId: CardTypeId;
   card: InGameCard;
   coords: CellCoords;
-  playerIndex: PlayerIndex | undefined;
-  peasantPlace: number | undefined;
+  peasant:
+    | {
+        playerIndex: number;
+        place: number;
+      }
+    | undefined;
 };
 
 export type Zones = Map<number, Zone>;

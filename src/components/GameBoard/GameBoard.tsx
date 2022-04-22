@@ -54,8 +54,7 @@ function getAllCards(): [CellId, Zone][] {
         cardTypeId: cardInfo.id,
         card,
         coords: coordinates,
-        playerIndex: 0,
-        peasantPlace: undefined,
+        peasant: undefined,
       },
     ];
   });
@@ -108,8 +107,7 @@ export function GameBoard({ game }: Props) {
             cardTypeId: initialCard.cardTypeId,
             card: initialCard,
             coords: initialCoords,
-            playerIndex: undefined,
-            peasantPlace: undefined,
+            peasant: undefined,
           },
         ],
         ...getAllCards(),

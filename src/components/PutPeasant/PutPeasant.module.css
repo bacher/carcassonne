@@ -70,28 +70,28 @@
 }
 
 .label[data-index='4'] {
-  left: 80%;
-  top: 20%;
+  left: 50%;
+  top: 50%;
 }
 
 .label[data-index='5'] {
   left: 80%;
-  top: 80%;
+  top: 20%;
 }
 
 .label[data-index='6'] {
-  left: 20%;
+  left: 80%;
   top: 80%;
 }
 
 .label[data-index='7'] {
   left: 20%;
-  top: 20%;
+  top: 80%;
 }
 
 .label[data-index='8'] {
-  left: 50%;
-  top: 50%;
+  left: 20%;
+  top: 20%;
 }
 
 .nobodyLabel {

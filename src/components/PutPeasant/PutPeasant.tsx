@@ -65,16 +65,11 @@ export function PutPeasant({ card, onChoose, onCancel }: Props) {
             />
           ))}
           {card.building === Building.Monastery && (
-            <label className={styles.label}>
-              <input
-                type="radio"
-                name="peasant"
-                checked={peasant === 8}
-                className={styles.peasant}
-                data-index={8}
-                onChange={() => setPeasant(8)}
-              />
-            </label>
+            <PeasantRadio
+              index={4}
+              isSelected={peasant === 4}
+              onSelect={setPeasant}
+            />
           )}
         </div>
         <label className={styles.nobodyLabel}>

@@ -1,13 +1,20 @@
 import { shuffle } from 'lodash';
 
 import {
+  Building,
   cards,
   cardsById,
   CardTypeInfo,
   InGameCard,
   SideType,
 } from '../data/cards';
-import { GameState, PlayerIndex, Zone, Zones } from '../data/types';
+import {
+  GameObjectType,
+  GameState,
+  PlayerIndex,
+  Zone,
+  Zones,
+} from '../data/types';
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
@@ -69,6 +76,38 @@ export function getAroundCells({
   ];
 }
 
+export function getAroundSquareCells({ col, row }: CellCoords): CellCoords[] {
+  const cells: CellCoords[] = [];
+
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      if (x !== 0 || y !== 0) {
+        cells.push(
+          makeCellCoordsByCoords({
+            col: col + x,
+            row: row + y,
+          }),
+        );
+      }
+    }
+  }
+
+  return cells;
+}
+
+function getAroundSquareZones(gameState: GameState, cell: CellCoords): Zone[] {
+  const zones = [];
+
+  for (const { cellId } of getAroundSquareCells(cell)) {
+    const zone = gameState.zones.get(cellId);
+    if (zone) {
+      zones.push(zone);
+    }
+  }
+
+  return zones;
+}
+
 const BOUND = 2 ** 12;
 const HALF_BOUND = BOUND / 2;
 
@@ -101,8 +140,12 @@ export function putCardInGame(
     card,
     cardTypeId: card.cardTypeId,
     coords,
-    playerIndex: gameState.activePlayer,
-    peasantPlace,
+    peasant: peasantPlace
+      ? {
+          playerIndex: gameState.activePlayer,
+          place: peasantPlace,
+        }
+      : undefined,
   };
 
   if (peasantPlace !== undefined) {
@@ -127,24 +170,29 @@ export function putCardInGame(
 }
 
 function checkCompletion(gameState: GameState, zone: Zone): void {
-  const towns = checkCompletionPartial(gameState, zone, SideType.TOWN);
+  const towns = getCompletedObjects(gameState, zone, SideType.TOWN);
   for (const town of towns) {
-    processCompletedObject(gameState, town, SideType.TOWN);
+    processCompletedObject(gameState, town, GameObjectType.TOWN);
   }
 
-  const roads = checkCompletionPartial(gameState, zone, SideType.ROAD);
+  const roads = getCompletedObjects(gameState, zone, SideType.ROAD);
   for (const road of roads) {
-    processCompletedObject(gameState, road, SideType.ROAD);
+    processCompletedObject(gameState, road, GameObjectType.ROAD);
+  }
+
+  const monasteries = getCompletedMonasteries(gameState, zone);
+  for (const monastery of monasteries) {
+    processCompletedMonastery(gameState, monastery);
   }
 }
 
 function processCompletedObject(
   gameState: GameState,
   object: { zones: CompletionZone[] },
-  objectType: SideType,
+  objectType: GameObjectType.ROAD | GameObjectType.TOWN,
 ) {
   const townCellIds = new Set<number>();
-  const playerPeasants = new Map<PlayerIndex, number>();
+  const playerPeasants = new Map<PlayerIndex, { zones: Zone[] }>();
   let maxPeasants = 0;
   let totalScore = 0;
 
@@ -152,31 +200,60 @@ function processCompletedObject(
     const { cellId } = zone.coords;
 
     if (ownPlayerIndex !== undefined) {
-      const peasants = (playerPeasants.get(ownPlayerIndex) ?? 0) + 1;
-
-      if (peasants > maxPeasants) {
-        maxPeasants = peasants;
+      let zonesWithPeasant = playerPeasants.get(ownPlayerIndex);
+      if (!zonesWithPeasant) {
+        zonesWithPeasant = {
+          zones: [],
+        };
+        playerPeasants.set(ownPlayerIndex, zonesWithPeasant);
       }
 
-      playerPeasants.set(ownPlayerIndex, peasants);
+      zonesWithPeasant.zones.push(zone);
+
+      if (zonesWithPeasant.zones.length > maxPeasants) {
+        maxPeasants = zonesWithPeasant.zones.length;
+      }
     }
 
     if (!townCellIds.has(cellId)) {
-      if (objectType === SideType.TOWN) {
-        totalScore += zone.card.isPrimeTown ? 4 : 2;
-      } else {
-        totalScore += 1;
+      switch (objectType) {
+        case GameObjectType.ROAD:
+          totalScore += 1;
+          break;
+        case GameObjectType.TOWN:
+          totalScore += zone.card.isPrimeTown ? 4 : 2;
+          break;
+        default:
+          throw new Error();
       }
+
       townCellIds.add(cellId);
     }
   }
 
-  for (const [playerIndex, count] of Array.from(playerPeasants.entries())) {
-    if (count === maxPeasants) {
+  for (const [playerIndex, { zones }] of Array.from(playerPeasants.entries())) {
+    const player = gameState.players[playerIndex];
+
+    if (zones.length === maxPeasants) {
       console.log(`Give Player[${playerIndex}] ${totalScore} points.`);
-      gameState.players[playerIndex].score += totalScore;
+      player.score += totalScore;
     }
-    gameState.players[playerIndex].peasantsCount += count;
+
+    for (const zone of zones) {
+      zone.peasant = undefined;
+      player.peasantsCount++;
+    }
+  }
+}
+
+function processCompletedMonastery(gameState: GameState, zone: Zone): void {
+  if (zone.peasant && zone.peasant.place === 4) {
+    const player = gameState.players[zone.peasant.playerIndex];
+
+    console.log(`Give Player[${zone.peasant.playerIndex}] 9 points.`);
+    player.score += 9;
+    player.peasantsCount++;
+    zone.peasant = undefined;
   }
 }
 
@@ -230,10 +307,8 @@ function getZonePartOwner(
   zone: Zone,
   sides: number[],
 ): PlayerIndex | undefined {
-  return zone.playerIndex !== undefined &&
-    zone.peasantPlace !== undefined &&
-    sides.includes(zone.peasantPlace)
-    ? zone.playerIndex
+  return zone.peasant && sides.includes(zone.peasant.place)
+    ? zone.peasant.playerIndex
     : undefined;
 }
 
@@ -244,7 +319,7 @@ type CompletionZone = {
   ownPlayerIndex: PlayerIndex | undefined;
 };
 
-function checkCompletionPartial(
+function getCompletedObjects(
   gameState: GameState,
   zone: Zone,
   sideType: SideType.TOWN | SideType.ROAD,
@@ -320,6 +395,24 @@ function checkCompletionPartial(
 
   console.log('CHECKING DONE');
   return results;
+}
+
+function getCompletedMonasteries(gameState: GameState, zone: Zone): Zone[] {
+  const completedMonasteries = [];
+  const aroundZones = getAroundSquareZones(gameState, zone.coords);
+
+  const zones = [...aroundZones, zone];
+
+  for (const zone of zones) {
+    if (
+      zone.card.building === Building.Monastery &&
+      getAroundSquareZones(gameState, zone.coords).length === 8
+    ) {
+      completedMonasteries.push(zone);
+    }
+  }
+
+  return completedMonasteries;
 }
 
 function checkCompletionExtend(

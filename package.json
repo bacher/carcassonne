@@ -5,6 +5,8 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:ci": "CI=yes yarn build",
+    "build:pages": "PUBLIC_URL='/carcassonne/' yarn build:ci",
     "test": "tsc",
     "format": "prettier -w src"
   },

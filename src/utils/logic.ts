@@ -128,42 +128,56 @@ export function putCardInGame(
 
 function checkCompletion(gameState: GameState, zone: Zone): void {
   const towns = checkCompletionPartial(gameState, zone, SideType.TOWN);
-
   for (const town of towns) {
-    const townCellIds = new Set<number>();
-    const playerPeasants = new Map<PlayerIndex, number>();
-    let maxPeasants = 0;
-    let totalScore = 0;
-
-    for (const { zone, ownPlayerIndex } of town.zones) {
-      const { cellId } = zone.coords;
-
-      if (ownPlayerIndex !== undefined) {
-        const peasants = (playerPeasants.get(ownPlayerIndex) ?? 0) + 1;
-
-        if (peasants > maxPeasants) {
-          maxPeasants = peasants;
-        }
-
-        playerPeasants.set(ownPlayerIndex, peasants);
-      }
-
-      if (!townCellIds.has(cellId)) {
-        totalScore += zone.card.isPrimeTown ? 4 : 2;
-        townCellIds.add(cellId);
-      }
-    }
-
-    for (const [playerIndex, count] of Array.from(playerPeasants.entries())) {
-      if (count === maxPeasants) {
-        console.log(`Give Player[${playerIndex}] ${totalScore} points.`);
-        gameState.players[playerIndex].score += totalScore;
-      }
-      gameState.players[playerIndex].peasantsCount += count;
-    }
+    processCompletedObject(gameState, town, SideType.TOWN);
   }
 
   const roads = checkCompletionPartial(gameState, zone, SideType.ROAD);
+  for (const road of roads) {
+    processCompletedObject(gameState, road, SideType.ROAD);
+  }
+}
+
+function processCompletedObject(
+  gameState: GameState,
+  object: { zones: CompletionZone[] },
+  objectType: SideType,
+) {
+  const townCellIds = new Set<number>();
+  const playerPeasants = new Map<PlayerIndex, number>();
+  let maxPeasants = 0;
+  let totalScore = 0;
+
+  for (const { zone, ownPlayerIndex } of object.zones) {
+    const { cellId } = zone.coords;
+
+    if (ownPlayerIndex !== undefined) {
+      const peasants = (playerPeasants.get(ownPlayerIndex) ?? 0) + 1;
+
+      if (peasants > maxPeasants) {
+        maxPeasants = peasants;
+      }
+
+      playerPeasants.set(ownPlayerIndex, peasants);
+    }
+
+    if (!townCellIds.has(cellId)) {
+      if (objectType === SideType.TOWN) {
+        totalScore += zone.card.isPrimeTown ? 4 : 2;
+      } else {
+        totalScore += 1;
+      }
+      townCellIds.add(cellId);
+    }
+  }
+
+  for (const [playerIndex, count] of Array.from(playerPeasants.entries())) {
+    if (count === maxPeasants) {
+      console.log(`Give Player[${playerIndex}] ${totalScore} points.`);
+      gameState.players[playerIndex].score += totalScore;
+    }
+    gameState.players[playerIndex].peasantsCount += count;
+  }
 }
 
 const counterSide = [2, 3, 0, 1];

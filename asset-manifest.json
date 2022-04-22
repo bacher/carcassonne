@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/carcassonne/static/css/main.82f89f82.css",
+    "main.js": "/carcassonne/static/js/main.856d3c90.js",
+    "index.html": "/carcassonne/index.html",
+    "main.82f89f82.css.map": "/carcassonne/static/css/main.82f89f82.css.map",
+    "main.856d3c90.js.map": "/carcassonne/static/js/main.856d3c90.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.82f89f82.css",
+    "static/js/main.856d3c90.js"
+  ]
+}

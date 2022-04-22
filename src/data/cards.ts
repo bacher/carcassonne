@@ -5,7 +5,7 @@ export const enum Building {
 }
 
 export const enum SideType {
-  GROUND,
+  NONE,
   TOWN,
   ROAD,
 }
@@ -37,31 +37,31 @@ export const enum Side {
 export type InGameCard = CardBase & {
   cardTypeId: CardTypeId;
   isPrimeTown: boolean;
-  unions: { union: Side[] }[];
+  unions: UnionObject[];
 };
 
 const cardsPartial: CardTypeInfoPartial[] = [
   {
     id: 'card:1',
-    sides: [SideType.TOWN, SideType.ROAD, SideType.GROUND, SideType.ROAD],
+    sides: [SideType.TOWN, SideType.ROAD, SideType.NONE, SideType.ROAD],
     connects: [0, 1, 0, 1],
     initialInDeckCount: 4,
   },
   {
     id: 'card:2',
-    sides: [SideType.GROUND, SideType.ROAD, SideType.GROUND, SideType.ROAD],
+    sides: [SideType.NONE, SideType.ROAD, SideType.NONE, SideType.ROAD],
     connects: [0, 1, 0, 1],
     initialInDeckCount: 8,
   },
   {
     id: 'card:3',
-    sides: [SideType.ROAD, SideType.ROAD, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.ROAD, SideType.ROAD, SideType.NONE, SideType.NONE],
     connects: [1, 1, 0, 0],
     initialInDeckCount: 9,
   },
   {
     id: 'card:4',
-    sides: [SideType.GROUND, SideType.ROAD, SideType.ROAD, SideType.ROAD],
+    sides: [SideType.NONE, SideType.ROAD, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 0, 0],
     initialInDeckCount: 4,
   },
@@ -79,43 +79,43 @@ const cardsPartial: CardTypeInfoPartial[] = [
   },
   {
     id: 'card:7',
-    sides: [SideType.TOWN, SideType.GROUND, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.TOWN, SideType.NONE, SideType.NONE, SideType.NONE],
     connects: [0, 0, 0, 0],
     initialInDeckCount: 5,
   },
   {
     id: 'card:8',
-    sides: [SideType.TOWN, SideType.GROUND, SideType.TOWN, SideType.GROUND],
+    sides: [SideType.TOWN, SideType.NONE, SideType.TOWN, SideType.NONE],
     connects: [0, 0, 0, 0],
     initialInDeckCount: 3,
   },
   {
     id: 'card:9',
-    sides: [SideType.TOWN, SideType.ROAD, SideType.ROAD, SideType.GROUND],
+    sides: [SideType.TOWN, SideType.ROAD, SideType.ROAD, SideType.NONE],
     connects: [0, 1, 1, 0],
     initialInDeckCount: 3,
   },
   {
     id: 'card:10',
-    sides: [SideType.TOWN, SideType.GROUND, SideType.ROAD, SideType.ROAD],
+    sides: [SideType.TOWN, SideType.NONE, SideType.ROAD, SideType.ROAD],
     connects: [0, 0, 1, 1],
     initialInDeckCount: 3,
   },
   {
     id: 'card:11',
-    sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.TOWN, SideType.TOWN, SideType.NONE, SideType.NONE],
     connects: [0, 0, 0, 0],
     initialInDeckCount: 2,
   },
   {
     id: 'card:12',
-    sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.TOWN, SideType.TOWN, SideType.NONE, SideType.NONE],
     connects: [1, 1, 0, 0],
     initialInDeckCount: 3,
   },
   {
     id: 'card:13',
-    sides: [SideType.TOWN, SideType.TOWN, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.TOWN, SideType.TOWN, SideType.NONE, SideType.NONE],
     connects: [1, 1, 0, 0],
     initialInDeckCount: 2,
     isPrimeTown: true,
@@ -135,26 +135,26 @@ const cardsPartial: CardTypeInfoPartial[] = [
   },
   {
     id: 'card:16',
-    sides: [SideType.GROUND, SideType.TOWN, SideType.GROUND, SideType.TOWN],
+    sides: [SideType.NONE, SideType.TOWN, SideType.NONE, SideType.TOWN],
     connects: [0, 1, 0, 1],
     initialInDeckCount: 1,
   },
   {
     id: 'card:17',
-    sides: [SideType.GROUND, SideType.TOWN, SideType.GROUND, SideType.TOWN],
+    sides: [SideType.NONE, SideType.TOWN, SideType.NONE, SideType.TOWN],
     connects: [0, 1, 0, 1],
     initialInDeckCount: 2,
     isPrimeTown: true,
   },
   {
     id: 'card:18',
-    sides: [SideType.GROUND, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    sides: [SideType.NONE, SideType.TOWN, SideType.TOWN, SideType.TOWN],
     connects: [0, 1, 1, 1],
     initialInDeckCount: 3,
   },
   {
     id: 'card:19',
-    sides: [SideType.GROUND, SideType.TOWN, SideType.TOWN, SideType.TOWN],
+    sides: [SideType.NONE, SideType.TOWN, SideType.TOWN, SideType.TOWN],
     connects: [0, 1, 1, 1],
     initialInDeckCount: 1,
     isPrimeTown: true,
@@ -181,14 +181,14 @@ const cardsPartial: CardTypeInfoPartial[] = [
   },
   {
     id: 'card:23',
-    sides: [SideType.GROUND, SideType.GROUND, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.NONE, SideType.NONE, SideType.NONE, SideType.NONE],
     building: Building.Monastery,
     connects: [0, 0, 0, 0],
     initialInDeckCount: 4,
   },
   {
     id: 'card:24',
-    sides: [SideType.ROAD, SideType.GROUND, SideType.GROUND, SideType.GROUND],
+    sides: [SideType.ROAD, SideType.NONE, SideType.NONE, SideType.NONE],
     building: Building.Monastery,
     connects: [0, 0, 0, 0],
     initialInDeckCount: 2,
@@ -228,7 +228,8 @@ function calMaxOrientation(card: CardTypeInfoPartial): number {
 }
 
 type UnionObject = {
-  union: Side[];
+  unionSides: Side[];
+  unionSideType: SideType.TOWN | SideType.ROAD;
 };
 
 function calcUnions(card: CardTypeInfoPartial): UnionObject[] {
@@ -240,25 +241,37 @@ function calcUnions(card: CardTypeInfoPartial): UnionObject[] {
   const unions = new Map<number, UnionObject>();
 
   for (let i = 0; i < 4; i++) {
+    const sideType = card.sides[i];
+
+    if (sideType === SideType.NONE) {
+      continue;
+    }
+
     const unionId = card.connects[i];
 
     if (unionId === 0) {
-      alone.push({ union: [i] });
+      alone.push({
+        unionSideType: sideType,
+        unionSides: [i],
+      });
       continue;
     }
 
     const unionObject = unions.get(unionId);
 
     if (unionObject) {
-      unionObject.union.push(i);
+      unionObject.unionSides.push(i);
     } else {
-      unions.set(unionId, { union: [i] });
+      unions.set(unionId, {
+        unionSideType: sideType,
+        unionSides: [i],
+      });
     }
   }
 
   const allUnions = [...alone, ...Array.from(unions.values())];
 
-  allUnions.sort((a, b) => a.union[0] - b.union[0]);
+  allUnions.sort((a, b) => a.unionSides[0] - b.unionSides[0]);
 
   return allUnions;
 }

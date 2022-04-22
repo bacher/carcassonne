@@ -18,7 +18,7 @@ export function NextCard({ card, onHoverChange, onChange }: Props) {
     drawCard(canvasRef.current!.getContext('2d')!, {
       card,
     });
-  }, [card, card.sides, card.connects]);
+  }, [card, card.sides]);
 
   return (
     <div

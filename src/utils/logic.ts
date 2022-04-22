@@ -35,8 +35,9 @@ export function rotateCard(card: InGameCard): void {
     card.connects[1],
     card.connects[2],
   ];
-  card.unions = card.unions.map(({ union }) => ({
-    union: union.map((side) => (side + 1) % 4),
+  card.unions = card.unions.map(({ unionSideType, unionSides }) => ({
+    unionSideType,
+    unionSides: unionSides.map((side) => (side + 1) % 4),
   }));
 }
 
@@ -200,16 +201,16 @@ function processCompletedObject(
   let maxPeasants = 0;
   let totalScore = 0;
 
-  for (const { zone, ownPlayerIndex } of object.zones) {
+  for (const { zone, ownerPlayerIndex } of object.zones) {
     const { cellId } = zone.coords;
 
-    if (ownPlayerIndex !== undefined) {
-      let zonesWithPeasant = playerPeasants.get(ownPlayerIndex);
+    if (ownerPlayerIndex !== undefined) {
+      let zonesWithPeasant = playerPeasants.get(ownerPlayerIndex);
       if (!zonesWithPeasant) {
         zonesWithPeasant = {
           zones: [],
         };
-        playerPeasants.set(ownPlayerIndex, zonesWithPeasant);
+        playerPeasants.set(ownerPlayerIndex, zonesWithPeasant);
       }
 
       zonesWithPeasant.zones.push(zone);
@@ -307,7 +308,7 @@ function getNeighbors(
   });
 }
 
-function getZonePartOwner(
+function getZoneUnionOwner(
   zone: Zone,
   sides: number[],
 ): PlayerIndex | undefined {
@@ -320,7 +321,7 @@ type CompleteResults = { zones: CompletionZone[] }[];
 
 type CompletionZone = {
   zone: Zone;
-  ownPlayerIndex: PlayerIndex | undefined;
+  ownerPlayerIndex: PlayerIndex | undefined;
 };
 
 function getCompletedObjects(
@@ -331,38 +332,22 @@ function getCompletedObjects(
   const results: CompleteResults = [];
 
   const { card, coords } = zone;
-  const groups: { sides: number[]; zoneUnionId: number }[] = [];
 
-  for (let i = 0; i < 4; i++) {
-    if (card.sides[i] === sideType) {
-      const zoneUnionId = card.connects[i];
+  const unions = card.unions.filter(
+    (union) => union.unionSideType === sideType,
+  );
 
-      const group =
-        zoneUnionId !== 0 &&
-        groups.find((group) => group.zoneUnionId === zoneUnionId);
-
-      if (group) {
-        group.sides.push(i);
-      } else {
-        groups.push({
-          sides: [i],
-          zoneUnionId,
-        });
-      }
-    }
-  }
-
-  nextgroup: for (const group of groups) {
-    const neighbors = getNeighbors(group.sides, coords);
+  nextunion: for (const { unionSides } of unions) {
+    const neighbors = getNeighbors(unionSides, coords);
 
     const stopBarrier = new Set(
-      group.sides.map((side) => `${coords.cellId}:${side}`),
+      unionSides.map((side) => `${coords.cellId}:${side}`),
     );
 
     const zones: CompletionZone[] = [
       {
         zone,
-        ownPlayerIndex: getZonePartOwner(zone, group.sides),
+        ownerPlayerIndex: getZoneUnionOwner(zone, unionSides),
       },
     ];
 
@@ -370,7 +355,7 @@ function getCompletedObjects(
       const nextZone = gameState.zones.get(coords.cellId);
 
       if (!nextZone) {
-        continue nextgroup;
+        continue nextunion;
       }
 
       if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
@@ -387,7 +372,7 @@ function getCompletedObjects(
       );
 
       if (!result) {
-        continue nextgroup;
+        continue nextunion;
       }
     }
 
@@ -428,20 +413,20 @@ function checkCompletionExtend(
   zones: CompletionZone[],
 ): boolean {
   const sides = [];
-  const unionId = zone.card.connects[comeFrom];
+  const union = zone.card.unions.find((union) =>
+    union.unionSides.includes(comeFrom),
+  )!;
 
-  if (unionId !== 0) {
-    for (let i = 0; i < 4; i++) {
-      if (i !== comeFrom && zone.card.connects[i] === unionId) {
-        sides.push(i);
-        stopBarrier.add(`${zone.coords.cellId}:${i}`);
-      }
+  for (const side of union.unionSides) {
+    if (side !== comeFrom) {
+      sides.push(side);
+      stopBarrier.add(`${zone.coords.cellId}:${side}`);
     }
   }
 
   zones.push({
     zone,
-    ownPlayerIndex: getZonePartOwner(zone, [comeFrom, ...sides]),
+    ownerPlayerIndex: getZoneUnionOwner(zone, union.unionSides),
   });
 
   if (sides.length === 0) {

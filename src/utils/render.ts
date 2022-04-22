@@ -1,7 +1,7 @@
 import { last } from 'lodash';
 
 import type { GameState, Point, Zone } from '../data/types';
-import { Building, SideType, InGameCard } from '../data/cards';
+import { Building, InGameCard, SideType } from '../data/cards';
 import { cellIdToCoords, getCellId } from './logic';
 
 export const CARD_SIZE = 50;
@@ -114,7 +114,7 @@ export function drawCard(
     card: InGameCard;
   },
 ): void {
-  const { sides, connects } = card;
+  const { sides, unions } = card;
 
   const center = {
     x: topLeft.x + CARD_SIZE / 2,
@@ -124,64 +124,49 @@ export function drawCard(
   drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, FIELD_STYLE);
 
   // Draw roads
-  for (let i = 0; i < sides.length; i++) {
-    const side = sides[i];
+  for (const union of unions) {
+    if (union.unionSideType === SideType.ROAD) {
+      if (union.unionSides.length === 1) {
+        const side = union.unionSides[0];
 
-    switch (side) {
-      case SideType.ROAD: {
-        if (side === SideType.ROAD) {
-          const roadStart = getSideCenter(topLeft, i);
-          const connect = connects[i];
+        drawLine(
+          ctx,
+          getSideCenter(topLeft, side),
+          getSideOffsetCenter(topLeft, side, CARD_SIZE / 3),
+          '#000',
+        );
+      } else if (union.unionSides.length === 2) {
+        const [side1, side2] = union.unionSides;
+        const roadStart = getSideCenter(topLeft, side1);
+        const roadEnd = getSideCenter(topLeft, side2);
 
-          if (connect) {
-            for (let j = i + 1; j < connects.length; j++) {
-              if (connect === connects[j]) {
-                const roadEnd = getSideCenter(topLeft, j);
+        if (side1 % 2 === side2 % 2) {
+          drawLine(ctx, roadStart, roadEnd, '#000');
+        } else {
+          const arcCenter = {
+            x: roadStart.x !== center.x ? roadStart.x : roadEnd.x,
+            y: roadStart.y !== center.y ? roadStart.y : roadEnd.y,
+          };
 
-                if (roadStart.x === roadEnd.x || roadStart.y === roadEnd.y) {
-                  drawLine(ctx, roadStart, roadEnd, '#000');
-                } else {
-                  const arcCenter = {
-                    x: roadStart.x !== center.x ? roadStart.x : roadEnd.x,
-                    y: roadStart.y !== center.y ? roadStart.y : roadEnd.y,
-                  };
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(topLeft.x, topLeft.y, CARD_SIZE, CARD_SIZE);
+          ctx.clip();
 
-                  ctx.save();
-                  ctx.beginPath();
-                  ctx.rect(topLeft.x, topLeft.y, CARD_SIZE, CARD_SIZE);
-                  ctx.clip();
-
-                  ctx.beginPath();
-                  ctx.arc(
-                    arcCenter.x,
-                    arcCenter.y,
-                    CARD_SIZE / 2,
-                    0,
-                    2 * Math.PI,
-                  );
-                  ctx.lineWidth = 1.5;
-                  ctx.strokeStyle = '#000';
-                  ctx.stroke();
-                  ctx.restore();
-                }
-              }
-            }
-          } else {
-            drawLine(
-              ctx,
-              roadStart,
-              getSideOffsetCenter(topLeft, i, CARD_SIZE / 3),
-              '#000',
-            );
-          }
+          ctx.beginPath();
+          ctx.arc(arcCenter.x, arcCenter.y, CARD_SIZE / 2, 0, 2 * Math.PI);
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = '#000';
+          ctx.stroke();
+          ctx.restore();
         }
-        break;
+      } else {
+        throw new Error();
       }
     }
   }
 
   const roadsCount = sides.filter((side) => side === SideType.ROAD).length;
-
   if (roadsCount >= 3) {
     drawCircle(
       ctx,
@@ -192,64 +177,69 @@ export function drawCard(
   }
 
   // Draw towns
-  const townsCount = sides.filter((side) => side === SideType.TOWN).length;
-
-  if (townsCount === 4) {
-    drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, TOWN_STYLE);
-  } else if (townsCount === 3) {
-    const polygon = [];
-
-    for (let i = 0; i < sides.length; i++) {
-      const side = sides[i];
-
-      const [p1, p2] = getSideLine(topLeft, i);
-
-      if (side === SideType.TOWN) {
-        polygon.push(p1, p2);
-      } else {
-        polygon.push(p1, getSideOffsetCenter(topLeft, i, CARD_SIZE / 3), p2);
-      }
-    }
-
-    drawPolygon(ctx, polygon, TOWN_STYLE);
-  } else {
-    const firstTownSide = sides.indexOf(SideType.TOWN);
-    const secondTownSide = sides.indexOf(SideType.TOWN, firstTownSide + 1);
-
-    if (
-      townsCount === 2 &&
-      connects[firstTownSide] &&
-      connects[firstTownSide] === connects[secondTownSide]
-    ) {
-      if (firstTownSide % 2 === secondTownSide % 2) {
-        for (let i = 0; i < sides.length; i++) {
-          if (sides[i] === SideType.TOWN) {
-            const [p1, p2] = getSideLine(topLeft, i);
-            drawPolygon(
-              ctx,
-              [p1, p2, getSideOffsetCenter(topLeft, i, (3 / 4) * CARD_SIZE)],
-              TOWN_STYLE,
-            );
-          }
-        }
-      } else {
-        const polygon = [];
-        for (let i = 0; i < sides.length; i++) {
-          if (sides[i] === SideType.TOWN) {
-            polygon.push(...getSideLine(topLeft, i));
-          }
-        }
-        drawPolygon(ctx, polygon, TOWN_STYLE);
-      }
-    } else {
-      for (let i = 0; i < sides.length; i++) {
-        const side = sides[i];
-        const [p1, p2] = getSideLine(topLeft, i);
-
-        if (side === SideType.TOWN) {
-          const outerCenter = getSideOffsetCenter(topLeft, i);
+  for (const union of unions) {
+    if (union.unionSideType === SideType.TOWN) {
+      switch (union.unionSides.length) {
+        case 1: {
+          const side = union.unionSides[0];
+          const [p1, p2] = getSideLine(topLeft, side);
+          const outerCenter = getSideOffsetCenter(topLeft, side);
           drawPolygon(ctx, [p1, p2, outerCenter], TOWN_STYLE);
+          break;
         }
+        case 2: {
+          const [side1, side2] = union.unionSides;
+
+          if (side1 % 2 === side2 % 2) {
+            for (const side of union.unionSides) {
+              const [p1, p2] = getSideLine(topLeft, side);
+              drawPolygon(
+                ctx,
+                [
+                  p1,
+                  p2,
+                  getSideOffsetCenter(topLeft, side, (3 / 4) * CARD_SIZE),
+                ],
+                TOWN_STYLE,
+              );
+            }
+          } else {
+            const polygon = [];
+            for (const side of union.unionSides) {
+              polygon.push(...getSideLine(topLeft, side));
+            }
+            drawPolygon(ctx, polygon, TOWN_STYLE);
+          }
+          break;
+        }
+        case 3: {
+          const polygon = [];
+
+          for (let i = 0; i < sides.length; i++) {
+            const side = sides[i];
+            const [p1, p2] = getSideLine(topLeft, i);
+
+            if (side === SideType.TOWN) {
+              polygon.push(p1, p2);
+            } else {
+              polygon.push(
+                p1,
+                getSideOffsetCenter(topLeft, i, CARD_SIZE / 3),
+                p2,
+              );
+            }
+          }
+
+          drawPolygon(ctx, polygon, TOWN_STYLE);
+          break;
+        }
+        case 4:
+          drawRect(
+            ctx,
+            topLeft,
+            { width: CARD_SIZE, height: CARD_SIZE },
+            TOWN_STYLE,
+          );
       }
     }
   }

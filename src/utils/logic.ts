@@ -7,7 +7,7 @@ import {
   InGameCard,
   SideType,
 } from '../data/cards';
-import { GameState, Zone, Zones } from '../data/types';
+import { GameState, PlayerIndex, Zone, Zones } from '../data/types';
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
@@ -86,13 +86,22 @@ export function cellIdToCoords(cellId: CellId): CellCoords {
 
 export function putCardInGame(
   gameState: GameState,
-  card: InGameCard,
-  coords: CellCoords,
+  {
+    card,
+    coords,
+    peasantPlace,
+  }: {
+    card: InGameCard;
+    coords: CellCoords;
+    peasantPlace: number | undefined;
+  },
 ): void {
   const zone: Zone = {
     card,
     cardTypeId: card.cardTypeId,
     coords,
+    playerIndex: gameState.activePlayer,
+    peasantPlace,
   };
 
   const cellId = zone.coords.cellId;

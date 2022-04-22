@@ -8,10 +8,14 @@ export type Point = {
   y: number;
 };
 
+export type PlayerIndex = number;
+
 export type Zone = {
   cardTypeId: CardTypeId;
   card: InGameCard;
   coords: CellCoords;
+  playerIndex: PlayerIndex | undefined;
+  peasantPlace: number | undefined;
 };
 
 export type Zones = Map<number, Zone>;

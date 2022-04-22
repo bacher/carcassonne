@@ -54,6 +54,8 @@ function getAllCards(): [CellId, Zone][] {
         cardTypeId: cardInfo.id,
         card,
         coords: coordinates,
+        playerIndex: 0,
+        peasantPlace: undefined,
       },
     ];
   });
@@ -106,6 +108,8 @@ export function GameBoard({ game }: Props) {
             cardTypeId: initialCard.cardTypeId,
             card: initialCard,
             coords: initialCoords,
+            playerIndex: undefined,
+            peasantPlace: undefined,
           },
         ],
         ...getAllCards(),
@@ -118,9 +122,18 @@ export function GameBoard({ game }: Props) {
       players: game.players,
     };
   }, []);
+
   const [putPeasantState, setPutPeasantState] = useState<
-    { card: InGameCard } | undefined
-  >({ card: gameState.cardPool[0] });
+    | {
+        card: InGameCard;
+        resolveCallback: (
+          results:
+            | { type: 'ok'; peasantPlace: number | undefined }
+            | { type: 'cancel' },
+        ) => void;
+      }
+    | undefined
+  >();
   // >();
 
   useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
@@ -255,14 +268,30 @@ export function GameBoard({ game }: Props) {
           if (gameState.potentialZones.has(effects.hoverCellId)) {
             const coords = cellIdToCoords(cellId);
 
-            if (canBePlaced(gameState.zones, card, coords)) {
-              putCardInGame(gameState, card, coords);
-
-              forceUpdate();
-              renderBoard();
-            } else {
+            if (!canBePlaced(gameState.zones, card, coords)) {
               window.alert("Can't be placed here");
+              return;
             }
+
+            setPutPeasantState({
+              card,
+              resolveCallback: (results) => {
+                setPutPeasantState(undefined);
+
+                if (results.type === 'cancel') {
+                  return;
+                }
+
+                putCardInGame(gameState, {
+                  card,
+                  coords,
+                  peasantPlace: results.peasantPlace,
+                });
+
+                forceUpdate();
+                renderBoard();
+              },
+            });
           }
         }
       }
@@ -323,7 +352,11 @@ export function GameBoard({ game }: Props) {
             console.timeEnd('find place');
 
             if (fitResult) {
-              putCardInGame(gameState, fitResult.card, fitResult.coords);
+              putCardInGame(gameState, {
+                card: fitResult.card,
+                coords: fitResult.coords,
+                peasantPlace: undefined,
+              });
             } else if (window.confirm("Can't be placed, try next?")) {
               gameState.cardPool.pop();
             }
@@ -363,7 +396,15 @@ export function GameBoard({ game }: Props) {
           />
         )}
       </div>
-      {putPeasantState && <PutPeasant card={putPeasantState.card} />}
+      {putPeasantState && (
+        <PutPeasant
+          card={putPeasantState.card}
+          onChoose={(peasantPlace) =>
+            putPeasantState.resolveCallback({ type: 'ok', peasantPlace })
+          }
+          onCancel={() => putPeasantState.resolveCallback({ type: 'cancel' })}
+        />
+      )}
     </div>
   );
 }

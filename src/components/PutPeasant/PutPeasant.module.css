@@ -18,7 +18,6 @@
   justify-content: center;
   gap: 8px;
   width: 400px;
-  height: 400px;
   padding: 18px;
   border-radius: 8px;
   background: #fff;
@@ -104,4 +103,10 @@
 .nobody {
   width: 20px;
   height: 20px;
+}
+
+.footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
 }

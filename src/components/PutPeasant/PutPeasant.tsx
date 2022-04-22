@@ -5,10 +5,6 @@ import { drawCard } from '../../utils/render';
 
 import styles from './PutPeasant.module.css';
 
-type Props = {
-  card: InGameCard;
-};
-
 type PeasantProps = {
   index: number;
   isSelected: boolean;
@@ -30,7 +26,13 @@ function PeasantRadio({ index, isSelected, onSelect }: PeasantProps) {
   );
 }
 
-export function PutPeasant({ card }: Props) {
+type Props = {
+  card: InGameCard;
+  onChoose: (placeIndex: number | undefined) => void;
+  onCancel: () => void;
+};
+
+export function PutPeasant({ card, onChoose, onCancel }: Props) {
   const [peasant, setPeasant] = useState<number | undefined>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -54,7 +56,7 @@ export function PutPeasant({ card }: Props) {
             width={300}
             height={300}
           />
-          {Array.from({ length: 8 }).map((value, index) => (
+          {Array.from({ length: 4 }).map((value, index) => (
             <PeasantRadio
               index={index}
               isSelected={peasant === index}
@@ -84,6 +86,26 @@ export function PutPeasant({ card }: Props) {
           />{' '}
           Nobody
         </label>
+        <div className={styles.footer}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              onChoose(peasant);
+            }}
+          >
+            Ok
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              onCancel();
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

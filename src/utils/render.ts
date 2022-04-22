@@ -146,18 +146,23 @@ export function drawCard(
                     y: roadStart.y !== center.y ? roadStart.y : roadEnd.y,
                   };
 
-                  const [angleStart, angleEnd] = arcs[`${i}x${j}`];
+                  ctx.save();
+                  ctx.beginPath();
+                  ctx.rect(topLeft.x, topLeft.y, CARD_SIZE, CARD_SIZE);
+                  ctx.clip();
 
                   ctx.beginPath();
                   ctx.arc(
                     arcCenter.x,
                     arcCenter.y,
                     CARD_SIZE / 2,
-                    angleStart,
-                    angleEnd,
+                    0,
+                    2 * Math.PI,
                   );
+                  ctx.lineWidth = 1.5;
                   ctx.strokeStyle = '#000';
                   ctx.stroke();
+                  ctx.restore();
                 }
               }
             }

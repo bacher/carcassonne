@@ -569,6 +569,19 @@ export const enum Quadrant {
   TOP_LEFT,
 }
 
+export function getSideDirection(side: Side): Point {
+  switch (side) {
+    case Side.UP:
+      return { x: 0, y: -1 };
+    case Side.RIGHT:
+      return { x: 1, y: 0 };
+    case Side.DOWN:
+      return { x: 0, y: 1 };
+    case Side.LEFT:
+      return { x: -1, y: 0 };
+  }
+}
+
 export function getQuadrant(side1: Side, side2: Side): Quadrant {
   if (side1 > side2) {
     return getQuadrant(side2, side1);

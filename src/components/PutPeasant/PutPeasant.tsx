@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Building, InGameCard, Side } from '../../data/cards';
+import { Building, InGameCard } from '../../data/cards';
 import { drawCard } from '../../utils/render';
+import {
+  getQuadrant,
+  getQuadrantDirection,
+  getSideDirection,
+} from '../../utils/logic';
 
 import styles from './PutPeasant.module.css';
-import { getQuadrant, getQuadrantDirection, Quadrant } from '../../utils/logic';
 
 type PeasantProps = {
   pos: { x: number; y: number };
@@ -78,26 +82,16 @@ export function PutPeasant({ card, onChoose, onCancel }: Props) {
 
             switch (unionSides.length) {
               case 1: {
-                switch (unionSides[0]) {
-                  case Side.UP:
-                    pos = { x: 0.5, y: 0.1 };
-                    break;
-                  case Side.RIGHT:
-                    pos = { x: 0.9, y: 0.5 };
-                    break;
-                  case Side.DOWN:
-                    pos = { x: 0.5, y: 0.9 };
-                    break;
-                  case Side.LEFT:
-                    pos = { x: 0.1, y: 0.5 };
-                    break;
-                }
+                const dir = getSideDirection(unionSides[0]);
+                pos = {
+                  x: 0.5 + dir.x * 0.4,
+                  y: 0.5 + dir.y * 0.4,
+                };
                 break;
               }
               case 2: {
                 const [side1, side2] = unionSides;
                 const center = getQuadrantDirection(getQuadrant(side1, side2));
-
                 pos = {
                   x: 0.5 + center.x * OFFSET,
                   y: 0.5 + center.y * OFFSET,

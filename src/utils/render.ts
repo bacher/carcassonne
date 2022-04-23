@@ -1,13 +1,15 @@
 import { last } from 'lodash';
 
-import type { GameState, Point, Zone } from '../data/types';
+import type { GameState, Player, Point, Zone } from '../data/types';
 import { Building, InGameCard, SideType } from '../data/cards';
 import {
   cellIdToCoords,
   getCellId,
   getQuadrant,
   getQuadrantDirection,
+  getSideDirection,
 } from './logic';
+import { Peasant, playerColors } from '../data/types';
 
 export const CARD_SIZE = 50;
 
@@ -55,9 +57,17 @@ export function render(
       y: zone.coords.row * CELL_SIZE,
     };
 
+    const peasant = zone.peasant
+      ? {
+          peasant: zone.peasant,
+          player: gameState.players[zone.peasant.playerIndex],
+        }
+      : undefined;
+
     drawCard(ctx, {
       topLeft,
       card: zone.card,
+      peasant,
     });
   }
 
@@ -114,9 +124,14 @@ export function drawCard(
   {
     topLeft = { x: 0, y: 0 },
     card,
+    peasant,
   }: {
     topLeft?: Point;
     card: InGameCard;
+    peasant?: {
+      peasant: Peasant;
+      player: Player;
+    };
   },
 ): void {
   const { sides, unions } = card;
@@ -272,6 +287,35 @@ export function drawCard(
 
   if (card.building === Building.Monastery) {
     drawText(ctx, center, 'M', '#000');
+  }
+
+  // Draw Peasants
+  if (peasant) {
+    let position: Point;
+
+    if (peasant.peasant.place.type === 'CENTER') {
+      position = center;
+    } else {
+      const union = card.unions[peasant.peasant.place.unionIndex];
+      if (union.unionSides.length === 1) {
+        const dir = getSideDirection(union.unionSides[0]);
+        position = {
+          x: center.x + dir.x * CARD_SIZE * 0.4,
+          y: center.y + dir.y * CARD_SIZE * 0.4,
+        };
+      } else if (union.unionSides.length === 2) {
+        const [side1, side2] = union.unionSides;
+        const dir = getQuadrantDirection(getQuadrant(side1, side2));
+        position = {
+          x: center.x + dir.x * CARD_SIZE * 0.148,
+          y: center.y + dir.y * CARD_SIZE * 0.148,
+        };
+      } else {
+        position = center;
+      }
+    }
+
+    drawCircle(ctx, position, 5, playerColors[peasant.player.color]);
   }
 }
 

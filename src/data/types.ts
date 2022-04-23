@@ -17,16 +17,16 @@ export const enum GameObjectType {
   MONASTERY,
 }
 
+export type Peasant = {
+  playerIndex: number;
+  place: PeasantPlace;
+};
+
 export type Zone = {
   cardTypeId: CardTypeId;
   card: InGameCard;
   coords: CellCoords;
-  peasant:
-    | {
-        playerIndex: number;
-        place: PeasantPlace;
-      }
-    | undefined;
+  peasant: Peasant | undefined;
 };
 
 export type Zones = Map<number, Zone>;

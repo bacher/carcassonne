@@ -6,15 +6,19 @@ import {
   cardsById,
   CardTypeInfo,
   InGameCard,
+  Side,
   SideType,
+  Union,
 } from '../data/cards';
 import {
   GameObjectType,
   GameState,
   PlayerIndex,
+  Point,
   Zone,
   Zones,
 } from '../data/types';
+import { PeasantPlace } from '../components/PutPeasant';
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
@@ -37,7 +41,7 @@ export function rotateCard(card: InGameCard): void {
   ];
   card.unions = card.unions.map(({ unionSideType, unionSides }) => ({
     unionSideType,
-    unionSides: unionSides.map((side) => (side + 1) % 4),
+    unionSides: unionSides.map((side) => (side + 1) % 4).sort((a, b) => a - b),
   }));
 }
 
@@ -137,7 +141,7 @@ export function putCardInGame(
   }: {
     card: InGameCard;
     coords: CellCoords;
-    peasantPlace: number | undefined;
+    peasantPlace: PeasantPlace | undefined;
   },
 ): void {
   const { cellId } = coords;
@@ -252,7 +256,7 @@ function processCompletedObject(
 }
 
 function processCompletedMonastery(gameState: GameState, zone: Zone): void {
-  if (zone.peasant && zone.peasant.place === 4) {
+  if (zone.peasant && zone.peasant.place.type === 'CENTER') {
     const player = gameState.players[zone.peasant.playerIndex];
 
     console.log(`Give Player[${zone.peasant.playerIndex}] 9 points.`);
@@ -308,13 +312,23 @@ function getNeighbors(
   });
 }
 
-function getZoneUnionOwner(
-  zone: Zone,
-  sides: number[],
-): PlayerIndex | undefined {
-  return zone.peasant && sides.includes(zone.peasant.place)
-    ? zone.peasant.playerIndex
-    : undefined;
+function getZoneUnionOwner(zone: Zone, union: Union): PlayerIndex | undefined {
+  const { card, peasant } = zone;
+
+  if (!peasant) {
+    return undefined;
+  }
+  const { place, playerIndex } = peasant;
+
+  if (place.type !== 'UNION') {
+    return undefined;
+  }
+
+  if (card.unions.indexOf(union) === place.unionIndex) {
+    return playerIndex;
+  }
+
+  return undefined;
 }
 
 type CompleteResults = { zones: CompletionZone[] }[];
@@ -337,7 +351,8 @@ function getCompletedObjects(
     (union) => union.unionSideType === sideType,
   );
 
-  nextunion: for (const { unionSides } of unions) {
+  nextunion: for (const union of unions) {
+    const { unionSides } = union;
     const neighbors = getNeighbors(unionSides, coords);
 
     const stopBarrier = new Set(
@@ -347,7 +362,7 @@ function getCompletedObjects(
     const zones: CompletionZone[] = [
       {
         zone,
-        ownerPlayerIndex: getZoneUnionOwner(zone, unionSides),
+        ownerPlayerIndex: getZoneUnionOwner(zone, union),
       },
     ];
 
@@ -426,7 +441,7 @@ function checkCompletionExtend(
 
   zones.push({
     zone,
-    ownerPlayerIndex: getZoneUnionOwner(zone, union.unionSides),
+    ownerPlayerIndex: getZoneUnionOwner(zone, union),
   });
 
   if (sides.length === 0) {
@@ -543,4 +558,58 @@ export function generateCardPool(): {
     initialCard,
     cardPool: shuffle(cardPool),
   };
+}
+
+export const enum Quadrant {
+  VERTICAL,
+  HORIZONTAL,
+  TOP_RIGHT,
+  BOTTOM_RIGHT,
+  BOTTOM_LEFT,
+  TOP_LEFT,
+}
+
+export function getQuadrant(side1: Side, side2: Side): Quadrant {
+  if (side1 > side2) {
+    return getQuadrant(side2, side1);
+  }
+
+  if (side1 === 0 && side2 === 2) {
+    return Quadrant.VERTICAL;
+  }
+
+  if (side1 === 1 && side2 === 3) {
+    return Quadrant.HORIZONTAL;
+  }
+
+  if (side1 === 0 && side2 === 1) {
+    return Quadrant.TOP_RIGHT;
+  }
+  if (side1 === 0 && side2 === 3) {
+    return Quadrant.TOP_LEFT;
+  }
+
+  if (side1 === 1 && side2 === 2) {
+    return Quadrant.BOTTOM_RIGHT;
+  }
+
+  return Quadrant.BOTTOM_LEFT;
+}
+
+export function getQuadrantDirection(quadrant: Quadrant): Point {
+  switch (quadrant) {
+    case Quadrant.TOP_RIGHT:
+      return { x: 1, y: -1 };
+    case Quadrant.BOTTOM_RIGHT:
+      return { x: 1, y: 1 };
+    case Quadrant.BOTTOM_LEFT:
+      return { x: -1, y: 1 };
+    case Quadrant.TOP_LEFT:
+      return { x: -1, y: -1 };
+    default:
+      return {
+        x: 0,
+        y: 0,
+      };
+  }
 }

@@ -49,51 +49,6 @@
   height: 30px;
 }
 
-.label[data-index='0'] {
-  left: 50%;
-  top: 10%;
-}
-
-.label[data-index='1'] {
-  left: 90%;
-  top: 50%;
-}
-
-.label[data-index='2'] {
-  left: 50%;
-  top: 90%;
-}
-
-.label[data-index='3'] {
-  left: 10%;
-  top: 50%;
-}
-
-.label[data-index='4'] {
-  left: 50%;
-  top: 50%;
-}
-
-.label[data-index='5'] {
-  left: 80%;
-  top: 20%;
-}
-
-.label[data-index='6'] {
-  left: 80%;
-  top: 80%;
-}
-
-.label[data-index='7'] {
-  left: 20%;
-  top: 80%;
-}
-
-.label[data-index='8'] {
-  left: 20%;
-  top: 20%;
-}
-
 .nobodyLabel {
   display: flex;
   align-items: center;

@@ -23,7 +23,7 @@ import { cards, cardsById, InGameCard } from '../../data/cards';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { useStateRef } from '../../hooks/useStateRef';
 import { NextCard } from '../NextCard';
-import { PutPeasant } from '../PutPeasant';
+import { PeasantPlace, PutPeasant } from '../PutPeasant';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -126,8 +126,8 @@ export function GameBoard({ game }: Props) {
         card: InGameCard;
         resolveCallback: (
           results:
-            | { type: 'ok'; peasantPlace: number | undefined }
-            | { type: 'cancel' },
+            | { type: 'OK'; peasantPlace: PeasantPlace | undefined }
+            | { type: 'CANCEL' },
         ) => void;
       }
     | undefined
@@ -290,7 +290,7 @@ export function GameBoard({ game }: Props) {
               resolveCallback: (results) => {
                 setPutPeasantState(undefined);
 
-                if (results.type === 'cancel') {
+                if (results.type === 'CANCEL') {
                   return;
                 }
 
@@ -412,9 +412,9 @@ export function GameBoard({ game }: Props) {
         <PutPeasant
           card={putPeasantState.card}
           onChoose={(peasantPlace) =>
-            putPeasantState.resolveCallback({ type: 'ok', peasantPlace })
+            putPeasantState.resolveCallback({ type: 'OK', peasantPlace })
           }
-          onCancel={() => putPeasantState.resolveCallback({ type: 'cancel' })}
+          onCancel={() => putPeasantState.resolveCallback({ type: 'CANCEL' })}
         />
       )}
     </div>

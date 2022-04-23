@@ -1,39 +1,56 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Building, InGameCard } from '../../data/cards';
+import { Building, InGameCard, Side } from '../../data/cards';
 import { drawCard } from '../../utils/render';
 
 import styles from './PutPeasant.module.css';
+import { getQuadrant, getQuadrantDirection, Quadrant } from '../../utils/logic';
 
 type PeasantProps = {
-  index: number;
+  pos: { x: number; y: number };
   isSelected: boolean;
-  onSelect: (peasant: number) => void;
+  onSelect: () => void;
 };
 
-function PeasantRadio({ index, isSelected, onSelect }: PeasantProps) {
+function PeasantRadio({ pos, isSelected, onSelect }: PeasantProps) {
   return (
-    <label className={styles.label} data-index={index}>
+    <label
+      className={styles.label}
+      style={{
+        left: `${100 * pos.x}%`,
+        top: `${100 * pos.y}%`,
+      }}
+    >
       <input
-        key={index}
         type="radio"
         name="peasant"
         checked={isSelected}
         className={styles.peasant}
-        onChange={() => onSelect(index)}
+        onChange={() => onSelect()}
       />
     </label>
   );
 }
 
+export type PeasantPlace =
+  | {
+      type: 'CENTER';
+    }
+  | {
+      type: 'UNION';
+      unionIndex: number;
+    };
+
+const OFFSET = 0.148;
+
 type Props = {
   card: InGameCard;
-  onChoose: (placeIndex: number | undefined) => void;
+  onChoose: (placeIndex: PeasantPlace | undefined) => void;
   onCancel: () => void;
 };
 
 export function PutPeasant({ card, onChoose, onCancel }: Props) {
-  const [peasant, setPeasant] = useState<number | undefined>();
+  const [peasant, setPeasant] = useState<PeasantPlace | undefined>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -56,19 +73,64 @@ export function PutPeasant({ card, onChoose, onCancel }: Props) {
             width={300}
             height={300}
           />
-          {Array.from({ length: 4 }).map((value, index) => (
-            <PeasantRadio
-              key={index}
-              index={index}
-              isSelected={peasant === index}
-              onSelect={setPeasant}
-            />
-          ))}
+          {card.unions.map(({ unionSides }, unionIndex) => {
+            let pos: { x: number; y: number };
+
+            switch (unionSides.length) {
+              case 1: {
+                switch (unionSides[0]) {
+                  case Side.UP:
+                    pos = { x: 0.5, y: 0.1 };
+                    break;
+                  case Side.RIGHT:
+                    pos = { x: 0.9, y: 0.5 };
+                    break;
+                  case Side.DOWN:
+                    pos = { x: 0.5, y: 0.9 };
+                    break;
+                  case Side.LEFT:
+                    pos = { x: 0.1, y: 0.5 };
+                    break;
+                }
+                break;
+              }
+              case 2: {
+                const [side1, side2] = unionSides;
+                const center = getQuadrantDirection(getQuadrant(side1, side2));
+
+                pos = {
+                  x: 0.5 + center.x * OFFSET,
+                  y: 0.5 + center.y * OFFSET,
+                };
+                break;
+              }
+              default:
+                pos = { x: 0.5, y: 0.5 };
+            }
+
+            return (
+              <PeasantRadio
+                key={unionIndex}
+                pos={pos}
+                isSelected={Boolean(
+                  peasant &&
+                    peasant.type === 'UNION' &&
+                    unionIndex === peasant.unionIndex,
+                )}
+                onSelect={() =>
+                  setPeasant({
+                    type: 'UNION',
+                    unionIndex,
+                  })
+                }
+              />
+            );
+          })}
           {card.building === Building.Monastery && (
             <PeasantRadio
-              index={4}
-              isSelected={peasant === 4}
-              onSelect={setPeasant}
+              pos={{ x: 0.5, y: 0.5 }}
+              isSelected={Boolean(peasant && peasant.type === 'CENTER')}
+              onSelect={() => setPeasant({ type: 'CENTER' })}
             />
           )}
         </div>

@@ -1,5 +1,6 @@
 import { InGameCard } from './cards';
 import { CellCoords } from '../utils/logic';
+import { PeasantPlace } from '../components/PutPeasant';
 
 export type CardTypeId = `card:${string}`;
 
@@ -23,7 +24,7 @@ export type Zone = {
   peasant:
     | {
         playerIndex: number;
-        place: number;
+        place: PeasantPlace;
       }
     | undefined;
 };

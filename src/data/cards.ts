@@ -28,7 +28,7 @@ type CardTypeInfoPartial = CardBase & {
 
 export type CardTypeInfo = CardTypeInfoPartial & {
   maxOrientation: number;
-  unions: UnionObject[];
+  unions: Union[];
 };
 
 export const enum Side {
@@ -41,7 +41,7 @@ export const enum Side {
 export type InGameCard = CardBase & {
   cardTypeId: CardTypeId;
   isPrimeTown: boolean;
-  unions: UnionObject[];
+  unions: Union[];
 };
 
 const cardsPartial: CardTypeInfoPartial[] = [
@@ -231,18 +231,18 @@ function calMaxOrientation(card: CardTypeInfoPartial): number {
   return 4;
 }
 
-type UnionObject = {
+export type Union = {
   unionSides: Side[];
   unionSideType: SideType.TOWN | SideType.ROAD;
 };
 
-function calcUnions(card: CardTypeInfoPartial): UnionObject[] {
+function calcUnions(card: CardTypeInfoPartial): Union[] {
   if (card.connects.length !== 4) {
     throw new Error();
   }
 
-  const alone: UnionObject[] = [];
-  const unions = new Map<number, UnionObject>();
+  const alone: Union[] = [];
+  const unions = new Map<number, Union>();
 
   for (let i = 0; i < 4; i++) {
     const sideType = card.sides[i];

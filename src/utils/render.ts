@@ -2,7 +2,12 @@ import { last } from 'lodash';
 
 import type { GameState, Point, Zone } from '../data/types';
 import { Building, InGameCard, SideType } from '../data/cards';
-import { cellIdToCoords, getCellId } from './logic';
+import {
+  cellIdToCoords,
+  getCellId,
+  getQuadrant,
+  getQuadrantDirection,
+} from './logic';
 
 export const CARD_SIZE = 50;
 
@@ -245,7 +250,24 @@ export function drawCard(
   }
 
   if (card.isPrimeTown) {
-    drawShield(ctx, center);
+    const townUnion = card.unions.find(
+      (union) => union.unionSideType === SideType.TOWN,
+    )!;
+
+    let townCenter;
+
+    if (townUnion.unionSides.length === 2) {
+      const [side1, side2] = townUnion.unionSides;
+      const roadDirection = getQuadrantDirection(getQuadrant(side1, side2));
+      townCenter = {
+        x: center.x + roadDirection.x * CARD_SIZE * 0.2,
+        y: center.y + roadDirection.y * CARD_SIZE * 0.2,
+      };
+    } else {
+      townCenter = center;
+    }
+
+    drawShield(ctx, townCenter);
   }
 
   if (card.building === Building.Monastery) {
@@ -255,9 +277,9 @@ export function drawCard(
 
 function drawShield(ctx: CanvasRenderingContext2D, { x, y }: Point): void {
   ctx.beginPath();
-  ctx.moveTo(x - CARD_SIZE / 4, y - CARD_SIZE / 5);
-  ctx.lineTo(x + CARD_SIZE / 4, y - CARD_SIZE / 5);
-  ctx.lineTo(x, y + CARD_SIZE / 4);
+  ctx.moveTo(x - CARD_SIZE / 5, y - CARD_SIZE / 6);
+  ctx.lineTo(x + CARD_SIZE / 5, y - CARD_SIZE / 6);
+  ctx.lineTo(x, y + CARD_SIZE / 5);
   ctx.closePath();
   ctx.fillStyle = '#4b85e8';
   ctx.fill();

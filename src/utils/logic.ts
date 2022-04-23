@@ -147,7 +147,6 @@ export function putCardInGame(
   const { cellId } = coords;
   const zone: Zone = {
     card,
-    cardTypeId: card.cardTypeId,
     coords,
     peasant: peasantPlace
       ? {
@@ -344,14 +343,13 @@ function getCompletedObjects(
   sideType: SideType.TOWN | SideType.ROAD,
 ): CompleteResults {
   const results: CompleteResults = [];
-
   const { card, coords } = zone;
 
   const unions = card.unions.filter(
     (union) => union.unionSideType === sideType,
   );
 
-  nextunion: for (const union of unions) {
+  for (const union of unions) {
     const { unionSides } = union;
     const neighbors = getNeighbors(unionSides, coords);
 
@@ -366,11 +364,14 @@ function getCompletedObjects(
       },
     ];
 
+    let isUnionFailed = false;
+
     for (const { side, coords } of neighbors) {
       const nextZone = gameState.zones.get(coords.cellId);
 
       if (!nextZone) {
-        continue nextunion;
+        isUnionFailed = true;
+        break;
       }
 
       if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
@@ -381,24 +382,74 @@ function getCompletedObjects(
         gameState,
         nextZone,
         counterSide[side],
-        sideType,
         stopBarrier,
         zones,
       );
 
       if (!result) {
-        continue nextunion;
+        isUnionFailed = true;
+        break;
       }
     }
 
-    results.push({
-      zones,
-    });
-    console.log('COMPLETED! ==>', zones);
+    if (!isUnionFailed) {
+      results.push({
+        zones,
+      });
+    }
   }
 
-  console.log('CHECKING DONE');
   return results;
+}
+
+export function getFreeUnionsForCard(
+  gameState: GameState,
+  card: InGameCard,
+  coords: CellCoords,
+): number[] {
+  const freeUnions: number[] = [];
+
+  for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex++) {
+    const union = card.unions[unionIndex];
+    const { unionSides } = union;
+    const neighbors = getNeighbors(unionSides, coords);
+
+    const stopBarrier = new Set(
+      unionSides.map((side) => `${coords.cellId}:${side}`),
+    );
+
+    let isUnionFailed = false;
+
+    for (const { side, coords } of neighbors) {
+      const nextZone = gameState.zones.get(coords.cellId);
+
+      if (!nextZone) {
+        continue;
+      }
+
+      if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+        continue;
+      }
+
+      const isCheckSuccess = checkFreeUnionExtend(
+        gameState,
+        nextZone,
+        counterSide[side],
+        stopBarrier,
+      );
+
+      if (!isCheckSuccess) {
+        isUnionFailed = true;
+        break;
+      }
+    }
+
+    if (!isUnionFailed) {
+      freeUnions.push(unionIndex);
+    }
+  }
+
+  return freeUnions;
 }
 
 function getCompletedMonasteries(gameState: GameState, zone: Zone): Zone[] {
@@ -423,9 +474,9 @@ function checkCompletionExtend(
   gameState: GameState,
   zone: Zone,
   comeFrom: number,
-  sideType: SideType.TOWN | SideType.ROAD,
   stopBarrier: Set<string>,
   zones: CompletionZone[],
+  allowIncomplete?: boolean,
 ): boolean {
   const sides = [];
   const union = zone.card.unions.find((union) =>
@@ -454,7 +505,11 @@ function checkCompletionExtend(
     const nextZone = gameState.zones.get(coords.cellId);
 
     if (!nextZone) {
-      return false;
+      if (allowIncomplete) {
+        continue;
+      } else {
+        return false;
+      }
     }
 
     if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
@@ -462,12 +517,65 @@ function checkCompletionExtend(
         gameState,
         nextZone,
         counterSide[side],
-        sideType,
         stopBarrier,
         zones,
       );
 
       if (!results) {
+        if (!allowIncomplete) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+function checkFreeUnionExtend(
+  gameState: GameState,
+  zone: Zone,
+  comeFrom: number,
+  stopBarrier: Set<string>,
+): boolean {
+  const sides = [];
+  const union = zone.card.unions.find((union) =>
+    union.unionSides.includes(comeFrom),
+  )!;
+
+  if (getZoneUnionOwner(zone, union) !== undefined) {
+    return false;
+  }
+
+  for (const side of union.unionSides) {
+    if (side !== comeFrom) {
+      sides.push(side);
+      stopBarrier.add(`${zone.coords.cellId}:${side}`);
+    }
+  }
+
+  if (sides.length === 0) {
+    return true;
+  }
+
+  const neighbors = getNeighbors(sides, zone.coords);
+
+  for (const { side, coords } of neighbors) {
+    const nextZone = gameState.zones.get(coords.cellId);
+
+    if (!nextZone) {
+      continue;
+    }
+
+    if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+      const isCheckSuccess = checkFreeUnionExtend(
+        gameState,
+        nextZone,
+        counterSide[side],
+        stopBarrier,
+      );
+
+      if (!isCheckSuccess) {
         return false;
       }
     }

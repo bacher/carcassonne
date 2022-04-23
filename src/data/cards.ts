@@ -5,7 +5,7 @@ export const enum Building {
 }
 
 export const enum SideType {
-  TOWN,
+  TOWN = 1,
   ROAD,
 }
 

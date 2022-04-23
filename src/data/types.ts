@@ -23,7 +23,6 @@ export type Peasant = {
 };
 
 export type Zone = {
-  cardTypeId: CardTypeId;
   card: InGameCard;
   coords: CellCoords;
   peasant: Peasant | undefined;

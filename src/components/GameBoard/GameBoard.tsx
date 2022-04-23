@@ -12,7 +12,7 @@ import {
   fitNextCard,
   generateCardPool,
   getAroundCells,
-  getCellId,
+  getFreeUnionsForCard,
   instantiateCard,
   makeCellCoordsByCoords,
   putCardInGame,
@@ -51,7 +51,6 @@ function getAllCards(): [CellId, Zone][] {
     return [
       coordinates.cellId,
       {
-        cardTypeId: cardInfo.id,
         card,
         coords: coordinates,
         peasant: undefined,
@@ -104,7 +103,6 @@ export function GameBoard({ game }: Props) {
         [
           initialCoords.cellId,
           {
-            cardTypeId: initialCard.cardTypeId,
             card: initialCard,
             coords: initialCoords,
             peasant: undefined,
@@ -124,6 +122,7 @@ export function GameBoard({ game }: Props) {
   const [putPeasantState, setPutPeasantState] = useState<
     | {
         card: InGameCard;
+        allowedUnions: number[];
         resolveCallback: (
           results:
             | { type: 'OK'; peasantPlace: PeasantPlace | undefined }
@@ -273,20 +272,31 @@ export function GameBoard({ game }: Props) {
 
             const player = gameState.players[gameState.activePlayer];
 
-            if (!player.peasantsCount) {
+            const completePutting = (
+              peasantPlace: PeasantPlace | undefined,
+            ) => {
               putCardInGame(gameState, {
                 card,
                 coords,
-                peasantPlace: undefined,
+                peasantPlace,
               });
 
               forceUpdate();
               renderBoard();
+            };
+
+            if (!player.peasantsCount) {
+              completePutting(undefined);
               return;
             }
 
+            const allowedUnions = getFreeUnionsForCard(gameState, card, coords);
+
+            console.log('allowedUnions:', card, allowedUnions);
+
             setPutPeasantState({
               card,
+              allowedUnions,
               resolveCallback: (results) => {
                 setPutPeasantState(undefined);
 
@@ -294,14 +304,7 @@ export function GameBoard({ game }: Props) {
                   return;
                 }
 
-                putCardInGame(gameState, {
-                  card,
-                  coords,
-                  peasantPlace: results.peasantPlace,
-                });
-
-                forceUpdate();
-                renderBoard();
+                completePutting(results.peasantPlace);
               },
             });
           }
@@ -411,6 +414,7 @@ export function GameBoard({ game }: Props) {
       {putPeasantState && (
         <PutPeasant
           card={putPeasantState.card}
+          allowedUnions={putPeasantState.allowedUnions}
           onChoose={(peasantPlace) =>
             putPeasantState.resolveCallback({ type: 'OK', peasantPlace })
           }

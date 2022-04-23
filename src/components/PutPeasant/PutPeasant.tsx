@@ -49,11 +49,12 @@ const OFFSET = 0.148;
 
 type Props = {
   card: InGameCard;
+  allowedUnions: number[];
   onChoose: (placeIndex: PeasantPlace | undefined) => void;
   onCancel: () => void;
 };
 
-export function PutPeasant({ card, onChoose, onCancel }: Props) {
+export function PutPeasant({ card, allowedUnions, onChoose, onCancel }: Props) {
   const [peasant, setPeasant] = useState<PeasantPlace | undefined>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -78,6 +79,10 @@ export function PutPeasant({ card, onChoose, onCancel }: Props) {
             height={300}
           />
           {card.unions.map(({ unionSides }, unionIndex) => {
+            if (!allowedUnions.includes(unionIndex)) {
+              return undefined;
+            }
+
             let pos: { x: number; y: number };
 
             switch (unionSides.length) {

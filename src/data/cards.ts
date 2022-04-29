@@ -231,10 +231,13 @@ function calMaxOrientation(card: CardTypeInfoPartial): number {
   return 4;
 }
 
+export type UnionIndex = number
+
 export type Union = {
   unionSides: Side[];
   unionSideType: SideType.TOWN | SideType.ROAD;
 };
+
 
 function calcUnions(card: CardTypeInfoPartial): Union[] {
   if (card.connects.length !== 4) {

@@ -11,6 +11,7 @@ import {
   cellIdToCoords,
   fitNextCard,
   generateCardPool,
+  getActivePlayer,
   getAroundCells,
   getFreeUnionsForCard,
   instantiateCard,
@@ -114,7 +115,7 @@ export function GameBoard({ game }: Props) {
         getAroundCells({ col: 0, row: 0 }).map((coords) => coords.cellId),
       ),
       cardPool,
-      activePlayer: 0,
+      activePlayerIndex: 0,
       players: game.players,
     };
   }, []);
@@ -182,7 +183,7 @@ export function GameBoard({ game }: Props) {
         gameId: state.gameId,
         cardPool: state.cardPool,
         players: state.players,
-        activePlayer: state.activePlayer,
+        activePlayerIndex: state.activePlayer,
         zones: new Map(state.zones),
         potentialZones: new Set(state.potentialZones),
       };
@@ -270,7 +271,7 @@ export function GameBoard({ game }: Props) {
               return;
             }
 
-            const player = gameState.players[gameState.activePlayer];
+            const player = getActivePlayer(gameState);
 
             const completePutting = (
               peasantPlace: PeasantPlace | undefined,
@@ -360,7 +361,7 @@ export function GameBoard({ game }: Props) {
       <div className={styles.rightPanel}>
         <PlayersList
           players={gameState.players}
-          activePlayerIndex={gameState.activePlayer}
+          activePlayerIndex={gameState.activePlayerIndex}
           onDoTurnClick={() => {
             console.time('find place');
             const fitResult = fitNextCard(gameState);
@@ -370,7 +371,7 @@ export function GameBoard({ game }: Props) {
               putCardInGame(gameState, {
                 card: fitResult.card,
                 coords: fitResult.coords,
-                peasantPlace: undefined,
+                peasantPlace: fitResult.peasantPlace,
               });
             } else if (window.confirm("Can't be placed, try next?")) {
               gameState.cardPool.pop();

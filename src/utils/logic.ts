@@ -9,10 +9,12 @@ import {
   Side,
   SideType,
   Union,
+  UnionIndex,
 } from '../data/cards';
 import {
   GameObjectType,
   GameState,
+  Player,
   PlayerIndex,
   Point,
   Zone,
@@ -43,6 +45,12 @@ export function rotateCard(card: InGameCard): void {
     unionSideType,
     unionSides: unionSides.map((side) => (side + 1) % 4).sort((a, b) => a - b),
   }));
+}
+
+function rotateCardImmutable(card: InGameCard): InGameCard {
+  const rotatedCard = { ...card };
+  rotateCard(rotatedCard);
+  return rotatedCard;
 }
 
 export type CellId = number;
@@ -150,14 +158,19 @@ export function putCardInGame(
     coords,
     peasant: peasantPlace
       ? {
-          playerIndex: gameState.activePlayer,
+          playerIndex: gameState.activePlayerIndex,
           place: peasantPlace,
         }
       : undefined,
   };
 
   if (peasantPlace !== undefined) {
-    gameState.players[gameState.activePlayer].peasantsCount -= 1;
+    const player = getActivePlayer(gameState);
+    player.peasantsCount -= 1;
+
+    if (player.peasantsCount < 0) {
+      throw new Error();
+    }
   }
 
   gameState.potentialZones.delete(cellId);
@@ -171,8 +184,8 @@ export function putCardInGame(
   }
 
   gameState.cardPool.pop();
-  gameState.activePlayer =
-    (gameState.activePlayer + 1) % gameState.players.length;
+  gameState.activePlayerIndex =
+    (gameState.activePlayerIndex + 1) % gameState.players.length;
 
   checkCompletion(gameState, zone);
 }
@@ -311,7 +324,10 @@ function getNeighbors(
   });
 }
 
-function getZoneUnionOwner(zone: Zone, union: Union): PlayerIndex | undefined {
+function getZoneUnionOwnerPlayerIndex(
+  zone: Zone,
+  union: Union,
+): PlayerIndex | undefined {
   const { card, peasant } = zone;
 
   if (!peasant) {
@@ -360,7 +376,7 @@ function getCompletedObjects(
     const zones: CompletionZone[] = [
       {
         zone,
-        ownerPlayerIndex: getZoneUnionOwner(zone, union),
+        ownerPlayerIndex: getZoneUnionOwnerPlayerIndex(zone, union),
       },
     ];
 
@@ -452,6 +468,58 @@ export function getFreeUnionsForCard(
   return freeUnions;
 }
 
+type GetUniformResult = CheckUnionResults & {
+  unionIndex: UnionIndex;
+};
+
+export function getUnionsForCard(
+  gameState: GameState,
+  card: InGameCard,
+  coords: CellCoords,
+): GetUniformResult[] {
+  const unions: GetUniformResult[] = [];
+
+  for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex++) {
+    const union = card.unions[unionIndex];
+    const { unionSides } = union;
+    const neighbors = getNeighbors(unionSides, coords);
+
+    const stopBarrier = new Set(
+      unionSides.map((side) => `${coords.cellId}:${side}`),
+    );
+
+    const unionResults: CheckUnionResults = {
+      scorePerZones: new Map([[coords.cellId, getZoneUnionScore(card, union)]]),
+      peasants: [],
+    };
+
+    for (const { side, coords } of neighbors) {
+      const nextZone = gameState.zones.get(coords.cellId);
+
+      if (
+        nextZone &&
+        !stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)
+      ) {
+        const results = checkUnionExtend(
+          gameState,
+          nextZone,
+          counterSide[side],
+          stopBarrier,
+        );
+
+        mergeCheckUnionResults(unionResults, results);
+      }
+    }
+
+    unions.push({
+      ...unionResults,
+      unionIndex,
+    });
+  }
+
+  return unions;
+}
+
 function getCompletedMonasteries(gameState: GameState, zone: Zone): Zone[] {
   const completedMonasteries = [];
   const aroundZones = getAroundSquareZones(gameState, zone.coords);
@@ -492,7 +560,7 @@ function checkCompletionExtend(
 
   zones.push({
     zone,
-    ownerPlayerIndex: getZoneUnionOwner(zone, union),
+    ownerPlayerIndex: getZoneUnionOwnerPlayerIndex(zone, union),
   });
 
   if (sides.length === 0) {
@@ -543,7 +611,7 @@ function checkFreeUnionExtend(
     union.unionSides.includes(comeFrom),
   )!;
 
-  if (getZoneUnionOwner(zone, union) !== undefined) {
+  if (getZoneUnionOwnerPlayerIndex(zone, union) !== undefined) {
     return false;
   }
 
@@ -584,6 +652,153 @@ function checkFreeUnionExtend(
   return true;
 }
 
+type PlayerPeasant = {
+  playerIndex: PlayerIndex;
+  peasantsCount: number;
+};
+
+function mergeZoneScore(
+  zones: Map<CellId, UnionScore>,
+  addZones: Map<CellId, UnionScore>,
+): void {
+  for (const [cellId, zoneScore] of Array.from(addZones.entries())) {
+    const alreadyScore = zones.get(cellId);
+    if (
+      alreadyScore &&
+      (alreadyScore.complete !== zoneScore.complete ||
+        alreadyScore.incomplete !== zoneScore.incomplete)
+    ) {
+      console.warn(
+        `Zone ${cellId} score doesn't equals ${alreadyScore} !== ${zoneScore}`,
+      );
+    }
+    zones.set(cellId, zoneScore);
+  }
+}
+
+function mergePlayerPeasants(
+  peasants: PlayerPeasant[],
+  addPeasants: PlayerPeasant[],
+): void {
+  for (const peasantPlayer of addPeasants) {
+    const player = peasants.find(
+      ({ playerIndex }) => playerIndex === peasantPlayer.playerIndex,
+    );
+
+    if (player) {
+      player.peasantsCount += peasantPlayer.peasantsCount;
+    } else {
+      peasants.push(peasantPlayer);
+    }
+  }
+}
+
+type CheckUnionResults = {
+  scorePerZones: Map<CellId, UnionScore>;
+  peasants: PlayerPeasant[];
+};
+
+function mergeCheckUnionResults(
+  results: CheckUnionResults,
+  addResults: CheckUnionResults,
+): void {
+  mergeZoneScore(results.scorePerZones, addResults.scorePerZones);
+  mergePlayerPeasants(results.peasants, addResults.peasants);
+}
+
+type UnionScore = {
+  complete: number;
+  incomplete: number;
+  avg: number;
+};
+
+function getZoneUnionScore(card: InGameCard, union: Union): UnionScore {
+  switch (union.unionSideType) {
+    case SideType.TOWN:
+      if (card.isPrimeTown) {
+        return {
+          complete: 4,
+          incomplete: 2,
+          avg: 3,
+        };
+      }
+      return {
+        complete: 2,
+        incomplete: 1,
+        avg: 1.5,
+      };
+    case SideType.ROAD:
+      return {
+        complete: 1,
+        incomplete: 1,
+        avg: 1,
+      };
+    default:
+      throw new Error();
+  }
+}
+
+function checkUnionExtend(
+  gameState: GameState,
+  zone: Zone,
+  comeFrom: number,
+  stopBarrier: Set<string>,
+): CheckUnionResults {
+  const sides = [];
+  const union = zone.card.unions.find((union) =>
+    union.unionSides.includes(comeFrom),
+  )!;
+
+  const results: CheckUnionResults = {
+    scorePerZones: new Map([
+      [zone.coords.cellId, getZoneUnionScore(zone.card, union)],
+    ]),
+    peasants: [],
+  };
+
+  const peasantPlayerIndex = getZoneUnionOwnerPlayerIndex(zone, union);
+
+  if (peasantPlayerIndex !== undefined) {
+    mergePlayerPeasants(results.peasants, [
+      {
+        playerIndex: peasantPlayerIndex,
+        peasantsCount: 1,
+      },
+    ]);
+  }
+
+  for (const side of union.unionSides) {
+    if (side !== comeFrom) {
+      sides.push(side);
+      stopBarrier.add(`${zone.coords.cellId}:${side}`);
+    }
+  }
+
+  if (sides.length > 0) {
+    const neighbors = getNeighbors(sides, zone.coords);
+
+    for (const { side, coords } of neighbors) {
+      const nextZone = gameState.zones.get(coords.cellId);
+
+      if (
+        nextZone &&
+        !stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)
+      ) {
+        const addResults = checkUnionExtend(
+          gameState,
+          nextZone,
+          counterSide[side],
+          stopBarrier,
+        );
+
+        mergeCheckUnionResults(results, addResults);
+      }
+    }
+  }
+
+  return results;
+}
+
 export function canBePlaced(
   zones: Zones,
   card: InGameCard,
@@ -613,13 +828,15 @@ function getAroundZones(zones: Zones, coords: CellCoords) {
   };
 }
 
-export function fitNextCard(gameState: GameState):
-  | {
-      card: InGameCard;
-      coords: CellCoords;
-    }
-  | undefined {
-  const currentCard = gameState.cardPool[gameState.cardPool.length - 1];
+type PossibleTurn = {
+  card: InGameCard;
+  coords: CellCoords;
+  score: UnionScore;
+  peasantPlace: PeasantPlace | undefined;
+};
+
+export function fitNextCard(gameState: GameState): PossibleTurn | undefined {
+  let currentCard = gameState.cardPool[gameState.cardPool.length - 1];
 
   if (!currentCard) {
     window.alert('Empty pool');
@@ -632,20 +849,277 @@ export function fitNextCard(gameState: GameState):
     cellIdToCoords,
   );
 
+  const possibleTurns: PossibleTurn[] = [];
+
   for (let i = 0; i < cardInfo.maxOrientation; i++) {
     for (const cellCoords of cellsCoords) {
       if (canBePlaced(gameState.zones, currentCard, cellCoords)) {
-        return {
-          card: currentCard,
-          coords: cellCoords,
-        };
+        for (const { score, peasantPlace } of getTurnScores(
+          gameState,
+          currentCard,
+          cellCoords,
+        )) {
+          possibleTurns.push({
+            card: currentCard,
+            coords: cellCoords,
+            score,
+            peasantPlace,
+          });
+        }
       }
     }
 
-    rotateCard(currentCard);
+    currentCard = rotateCardImmutable(currentCard);
   }
 
-  return undefined;
+  if (possibleTurns.length === 0) {
+    return undefined;
+  }
+
+  possibleTurns.sort((a, b) => b.score.avg - a.score.avg);
+
+  console.log('Possible turns:');
+  for (let i = 0; i < possibleTurns.length; i += 1) {
+    const turn = possibleTurns[i];
+    console.log(
+      `#${i + 1} [${turn.coords.col}:${turn.coords.row}] (c:${
+        turn.score.complete
+      } i:${turn.score.incomplete} a:${turn.score.avg})`,
+      turn.peasantPlace,
+    );
+  }
+
+  const maxScore = possibleTurns[0].score;
+
+  possibleTurns.filter((turn) => turn.score === maxScore);
+
+  return getRandomItem(possibleTurns);
+}
+
+function getRandomItem<T>(items: T[]): T {
+  if (items.length === 0) {
+    throw new Error();
+  }
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+export function getActivePlayer(gameState: GameState): Player {
+  const player = gameState.players[gameState.activePlayerIndex];
+
+  if (!player) {
+    throw new Error();
+  }
+
+  return player;
+}
+
+function makeZeroScore(): UnionScore {
+  return {
+    complete: 0,
+    incomplete: 0,
+    avg: 0,
+  };
+}
+
+function sumUnionScore(scores: UnionScore[]): UnionScore {
+  const sum = makeZeroScore();
+
+  for (const score of scores) {
+    sum.complete += score.complete;
+    sum.incomplete += score.incomplete;
+    sum.avg += score.avg;
+  }
+
+  return sum;
+}
+
+function amplifyScore(score: UnionScore, amplifier: number): UnionScore {
+  return {
+    complete: score.complete * amplifier,
+    incomplete: score.incomplete * amplifier,
+    avg: score.avg * amplifier,
+  };
+}
+
+function addAbsoluteScore(score: UnionScore, add: number): UnionScore {
+  return {
+    complete: score.complete + add,
+    incomplete: score.incomplete + add,
+    avg: score.avg + add,
+  };
+}
+
+function addUnionScore(score: UnionScore, add: UnionScore): UnionScore {
+  return {
+    complete: score.complete + add.complete,
+    incomplete: score.incomplete + add.incomplete,
+    avg: score.avg + add.avg,
+  };
+}
+
+type Turn = {
+  score: UnionScore;
+  peasantPlace: PeasantPlace | undefined;
+};
+
+type ZScore = { zoneScore: UnionScore; unionScore: UnionScore };
+
+function getTurnScores(
+  gameState: GameState,
+  card: InGameCard,
+  coords: CellCoords,
+): Turn[] {
+  const player = getActivePlayer(gameState);
+  const unions = getUnionsForCard(gameState, card, coords);
+  const aroundZones = getAroundSquareZones(gameState, coords);
+
+  const turns: Turn[] = [];
+  const scorePerUnion = new Map<UnionIndex, ZScore>();
+
+  for (const union of unions) {
+    const unionScore = sumUnionScore(Array.from(union.scorePerZones.values()));
+    const zoneScore = getZoneUnionScore(card, card.unions[union.unionIndex]);
+
+    if (union.peasants.length > 0) {
+      const maxPeasantsCount = union.peasants.sort(
+        (a, b) => b.peasantsCount - a.peasantsCount,
+      )[0].peasantsCount;
+
+      const winPlayerIndexes = union.peasants
+        .filter(({ peasantsCount }) => peasantsCount === maxPeasantsCount)
+        .map(({ playerIndex }) => playerIndex);
+
+      if (winPlayerIndexes.includes(player.playerIndex)) {
+        // TODO: Calculate proper amplifier
+        scorePerUnion.set(union.unionIndex, {
+          unionScore,
+          zoneScore: amplifyScore(zoneScore, 1 / winPlayerIndexes.length),
+        });
+      } else {
+        // TODO: Calculate proper amplifier
+        scorePerUnion.set(union.unionIndex, {
+          unionScore,
+          zoneScore: amplifyScore(zoneScore, -0.8),
+        });
+      }
+    } else {
+      scorePerUnion.set(union.unionIndex, {
+        unionScore,
+        // TODO: Calculate proper amplifier
+        zoneScore: addAbsoluteScore(amplifyScore(zoneScore, -1), 1),
+      });
+    }
+  }
+
+  const noPeasantScore = sumUnionScore(
+    Array.from(scorePerUnion.values()).map((score) => score.zoneScore),
+  );
+
+  turns.push({
+    score: noPeasantScore,
+    peasantPlace: undefined,
+  });
+
+  if (player.peasantsCount > 0) {
+    for (const union of unions) {
+      if (union.peasants.length === 0) {
+        const otherScores = Array.from(scorePerUnion.entries())
+          .filter(([unionIndex]) => unionIndex !== union.unionIndex)
+          .map(([, score]) => score.zoneScore);
+
+        turns.push({
+          score: sumUnionScore([
+            ...otherScores,
+            addAbsoluteScore(
+              sumUnionScore(Array.from(union.scorePerZones.values())),
+              // -1.5 because of using peasant
+              -1.5,
+            ),
+          ]),
+          peasantPlace: {
+            type: 'UNION',
+            unionIndex: union.unionIndex,
+          },
+        });
+      }
+    }
+
+    if (card.building === Building.Monastery) {
+      turns.push({
+        // 1.5 fee because of losing peasant
+        score: addAbsoluteScore(
+          noPeasantScore,
+          Math.min(5, 1 + aroundZones.length) - 1.5,
+        ),
+        peasantPlace: {
+          type: 'CENTER',
+        },
+      });
+    }
+  }
+
+  const monasteryBonus = calculateMonasteryBonus(
+    gameState,
+    aroundZones,
+    player,
+  );
+
+  if (monasteryBonus) {
+    for (const turn of turns) {
+      turn.score = addUnionScore(turn.score, monasteryBonus);
+    }
+  }
+
+  return turns;
+}
+
+function calculateMonasteryBonus(
+  gameState: GameState,
+  aroundZones: Zone[],
+  player: Player,
+): UnionScore | undefined {
+  const scores: UnionScore[] = [];
+
+  for (const zone of aroundZones) {
+    if (zone.card.building === Building.Monastery) {
+      if (zone.peasant && zone.peasant.place.type === 'CENTER') {
+        let points = 0;
+
+        if (zone.peasant.playerIndex === player.playerIndex) {
+          points = 1;
+        } else {
+          const alreadyAroundZones =
+            getAroundSquareZones(gameState, zone.coords).length + 1;
+
+          if (alreadyAroundZones === 8) {
+            points = -5;
+          } else if (alreadyAroundZones === 7) {
+            points = -3;
+          } else if (alreadyAroundZones === 6) {
+            points = -2;
+          } else {
+            points = -0.5;
+          }
+        }
+
+        scores.push({
+          complete: points,
+          incomplete: points,
+          avg: points,
+        });
+      }
+    }
+  }
+
+  if (scores.length === 0) {
+    return undefined;
+  }
+
+  return sumUnionScore(scores);
 }
 
 export function generateCardPool(): {

@@ -32,7 +32,7 @@ export type Zones = Map<number, Zone>;
 
 export type GameState = {
   gameId: string;
-  activePlayer: number;
+  activePlayerIndex: number;
   zones: Zones;
   potentialZones: Set<number>;
   cardPool: InGameCard[];
@@ -61,4 +61,5 @@ export type Player = {
   color: Color;
   score: number;
   peasantsCount: number;
+  playerIndex: number;
 };

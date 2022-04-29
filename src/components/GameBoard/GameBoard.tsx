@@ -25,6 +25,7 @@ import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { useStateRef } from '../../hooks/useStateRef';
 import { NextCard } from '../NextCard';
 import { PeasantPlace, PutPeasant } from '../PutPeasant';
+import { GameStats } from '../GameStats';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -158,9 +159,9 @@ export function GameBoard({ game }: Props) {
 
   useEffect(renderBoard, [gameState]);
 
-  function saveGameState() {
+  function saveGameState(gameName?: string) {
     localStorage.setItem(
-      'gameState',
+      `gameState${gameName ? `:${gameName}` : ''}`,
       JSON.stringify({
         ...gameState,
         zones: Array.from(gameState.zones.entries()),
@@ -169,8 +170,10 @@ export function GameBoard({ game }: Props) {
     );
   }
 
-  function loadGameState(): GameState | undefined {
-    const stateJson = localStorage.getItem('gameState');
+  function loadGameState(gameName?: string): GameState | undefined {
+    const stateJson = localStorage.getItem(
+      `gameState${gameName ? `:${gameName}` : ''}`,
+    );
 
     if (!stateJson) {
       return undefined;
@@ -328,6 +331,23 @@ export function GameBoard({ game }: Props) {
     }
   }, [mouseState, isMouseDown]);
 
+  function loadGame(gameName?: string) {
+    const state = loadGameState(gameName);
+    if (!state || state.gameId !== game.gameId) {
+      window.alert('No saved game');
+      return;
+    }
+
+    gameState.cardPool = state.cardPool;
+    gameState.players = state.players;
+    gameState.zones = state.zones;
+    gameState.potentialZones = state.potentialZones;
+    gameState.activePlayerIndex = state.activePlayerIndex;
+
+    renderBoard();
+    forceUpdate();
+  }
+
   return (
     <div className={styles.root}>
       <div className={styles.canvasWrapper}>
@@ -359,6 +379,7 @@ export function GameBoard({ game }: Props) {
         )}
       </div>
       <div className={styles.rightPanel}>
+        <GameStats gameState={gameState} />
         <PlayersList
           players={gameState.players}
           activePlayerIndex={gameState.activePlayerIndex}
@@ -396,6 +417,34 @@ export function GameBoard({ game }: Props) {
             type="button"
             onClick={(event) => {
               event.preventDefault();
+
+              if (!window.confirm('Are you sure?')) {
+                return;
+              }
+
+              loadGame();
+            }}
+          >
+            Load
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+
+              const gameName = window.prompt('Enter load game name')?.trim();
+              if (!gameName) {
+                return;
+              }
+              loadGame(gameName);
+            }}
+          >
+            Load ...
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
               saveGameState();
             }}
           >
@@ -406,27 +455,14 @@ export function GameBoard({ game }: Props) {
             onClick={(event) => {
               event.preventDefault();
 
-              if (!window.confirm('Are you sure?')) {
-                return;
+              const gameName = window.prompt('Enter load game name')?.trim();
+
+              if (gameName) {
+                saveGameState(gameName);
               }
-
-              const state = loadGameState();
-              if (!state || state.gameId !== game.gameId) {
-                window.alert('No saved game');
-                return;
-              }
-
-              gameState.cardPool = state.cardPool;
-              gameState.players = state.players;
-              gameState.zones = state.zones;
-              gameState.potentialZones = state.potentialZones;
-              gameState.activePlayerIndex = state.activePlayerIndex;
-
-              renderBoard();
-              forceUpdate();
             }}
           >
-            Load
+            Save as ...
           </button>
         </div>
         {isShowCardPool && (

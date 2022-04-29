@@ -183,7 +183,7 @@ export function GameBoard({ game }: Props) {
         gameId: state.gameId,
         cardPool: state.cardPool,
         players: state.players,
-        activePlayerIndex: state.activePlayer,
+        activePlayerIndex: state.activePlayerIndex,
         zones: new Map(state.zones),
         potentialZones: new Set(state.potentialZones),
       };
@@ -391,6 +391,42 @@ export function GameBoard({ game }: Props) {
             }}
           >
             {isShowCardPool ? 'Hide all cards' : 'Show all cards'}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              saveGameState();
+            }}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+
+              if (!window.confirm('Are you sure?')) {
+                return;
+              }
+
+              const state = loadGameState();
+              if (!state || state.gameId !== game.gameId) {
+                window.alert('No saved game');
+                return;
+              }
+
+              gameState.cardPool = state.cardPool;
+              gameState.players = state.players;
+              gameState.zones = state.zones;
+              gameState.potentialZones = state.potentialZones;
+              gameState.activePlayerIndex = state.activePlayerIndex;
+
+              renderBoard();
+              forceUpdate();
+            }}
+          >
+            Load
           </button>
         </div>
         {isShowCardPool && (

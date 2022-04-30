@@ -30,7 +30,7 @@ import { NextCard } from '../NextCard';
 import { PeasantPlace, PutPeasant } from '../PutPeasant';
 import { GameStats } from '../GameStats';
 import { PossibleTurns } from '../PossibleTurns';
-import { LOCAL_STORAGE_PREFIX } from '../../data/const';
+import { loadData, saveData } from '../../utils/localStorage';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -194,28 +194,24 @@ export function GameBoard({ gameSetup }: Props) {
       potentialZones: Array.from(gameState.potentialZones.values()),
     };
 
-    window.localStorage.setItem(
-      `${LOCAL_STORAGE_PREFIX}.gameState[${gameName ?? '_autosave'}]`,
-      JSON.stringify(gameStateSnapshot),
+    saveData<GameStateSnapshot>(
+      `gameState[${gameName ?? '_autosave'}]`,
+      SCHEMA_REV,
+      gameStateSnapshot,
     );
   }
 
   function loadGameState(gameName?: string): GameState | undefined {
-    const stateJson = window.localStorage.getItem(
-      `${LOCAL_STORAGE_PREFIX}.gameState[${gameName ?? '_autosave'}]`,
+    const state = loadData<GameStateSnapshot>(
+      `gameState[${gameName ?? '_autosave'}]`,
+      SCHEMA_REV,
     );
 
-    if (!stateJson) {
+    if (!state) {
       return undefined;
     }
 
     try {
-      const state = JSON.parse(stateJson) as GameStateSnapshot;
-
-      if (state.schemaRev !== SCHEMA_REV) {
-        return undefined;
-      }
-
       return {
         gameId: state.gameId,
         cardPool: state.cardPool,

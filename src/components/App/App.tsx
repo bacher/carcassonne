@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react';
 
-import { LOCAL_STORAGE_PREFIX } from '../../data/const';
 import type { MenuPlayer } from '../../data/types';
+import { loadData, saveData } from '../../utils/localStorage';
 import { MainMenu } from '../MainMenu';
 import { GameBoard } from '../GameBoard';
 
 const SCHEMA_REV = 1;
 
-type SavedGamePreset = {
-  schemaRev: number;
+type GamePresetSnapshot = {
   gameId: string;
   players: MenuPlayer[];
 };
@@ -33,17 +32,7 @@ export function App() {
     }
 
     try {
-      const gameJson = window.localStorage.getItem(
-        `${LOCAL_STORAGE_PREFIX}.game[${gameId}]`,
-      );
-
-      if (gameJson) {
-        const game = JSON.parse(gameJson) as SavedGamePreset;
-
-        if (game.schemaRev === SCHEMA_REV) {
-          return game;
-        }
-      }
+      return loadData<GamePresetSnapshot>(`game[${gameId}]`, SCHEMA_REV);
     } catch (error) {
       console.error(error);
     }
@@ -60,16 +49,12 @@ export function App() {
       onStartPlay={(game) => {
         const gameId = `game${Math.floor(Math.random() * 10000)}`;
 
-        const gameSetup: SavedGamePreset = {
+        const gameSetup = {
           ...game,
-          schemaRev: SCHEMA_REV,
           gameId,
         };
 
-        localStorage.setItem(
-          `${LOCAL_STORAGE_PREFIX}.game[${gameId}]`,
-          JSON.stringify(gameSetup),
-        );
+        saveData<GamePresetSnapshot>(`game[${gameId}]`, SCHEMA_REV, gameSetup);
         window.location.hash = `#${gameId}`;
         setGameId(gameId);
       }}

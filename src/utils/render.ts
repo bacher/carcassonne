@@ -8,6 +8,7 @@ import {
   getQuadrant,
   getQuadrantDirection,
   getSideDirection,
+  PossibleTurn,
 } from './logic';
 import { Peasant, playerColors } from '../data/types';
 
@@ -35,7 +36,13 @@ export function render(
     size,
     viewport,
     hoverCellId,
-  }: { size: Size; viewport: Point; hoverCellId: number | undefined },
+    activeTurn,
+  }: {
+    size: Size;
+    viewport: Point;
+    hoverCellId: number | undefined;
+    activeTurn: PossibleTurn | undefined;
+  },
 ) {
   ctx.clearRect(0, 0, size.width, size.height);
 
@@ -80,9 +87,36 @@ export function render(
     drawRect(ctx, topLeft, { width: CARD_SIZE, height: CARD_SIZE }, '#cdf');
   }
 
+  if (activeTurn) {
+    const { col, row } = activeTurn.coords;
+    const topLeft = {
+      x: col * CELL_SIZE,
+      y: row * CELL_SIZE,
+    };
+
+    drawCard(ctx, {
+      topLeft,
+      card: activeTurn.card,
+      peasant: activeTurn.peasantPlace
+        ? {
+            player: gameState.players[gameState.activePlayerIndex],
+            peasant: {
+              playerIndex: gameState.activePlayerIndex,
+              place: activeTurn.peasantPlace,
+            },
+          }
+        : undefined,
+    });
+    drawRect(
+      ctx,
+      topLeft,
+      { width: CARD_SIZE, height: CARD_SIZE },
+      'rgba(255,255,255,0.5)',
+    );
+  }
+
   if (hoverCellId) {
     const { col, row } = cellIdToCoords(hoverCellId);
-
     const topLeft = {
       x: col * CELL_SIZE,
       y: row * CELL_SIZE,

@@ -1,0 +1,43 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.title {
+  margin-bottom: 6px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+
+.turnBlock {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #000;
+  border-bottom: none;
+  background: none;
+  font-size: 14px;
+  appearance: none;
+  cursor: pointer;
+  text-align: unset;
+}
+
+.turnBlock:hover {
+  background: #ecf0ff;
+}
+
+.turnBlock:last-child {
+  border-bottom: 1px solid #000;
+}
+
+.score {
+  font-size: 14px;
+}

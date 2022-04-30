@@ -1,12 +1,17 @@
 .root {
   display: flex;
+  height: 100%;
 }
 
-.rightPanel {
+.column {
   display: flex;
   flex-direction: column;
-  width: 180px;
+  width: 190px;
   padding: 8px;
+}
+
+.column.wide {
+  width: 240px;
 }
 
 .canvasWrapper {

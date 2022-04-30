@@ -156,12 +156,13 @@ export function putCardInGame(
   const zone: Zone = {
     card,
     coords,
-    peasant: peasantPlace
-      ? {
-          playerIndex: gameState.activePlayerIndex,
-          place: peasantPlace,
-        }
-      : undefined,
+    peasant:
+      peasantPlace !== undefined
+        ? {
+            playerIndex: gameState.activePlayerIndex,
+            place: peasantPlace,
+          }
+        : undefined,
   };
 
   if (peasantPlace !== undefined) {
@@ -706,10 +707,9 @@ function mergeCheckUnionResults(
   mergePlayerPeasants(results.peasants, addResults.peasants);
 }
 
-type UnionScore = {
+export type UnionScore = {
   complete: number;
   incomplete: number;
-  avg: number;
 };
 
 function getZoneUnionScore(card: InGameCard, union: Union): UnionScore {
@@ -719,19 +719,16 @@ function getZoneUnionScore(card: InGameCard, union: Union): UnionScore {
         return {
           complete: 4,
           incomplete: 2,
-          avg: 3,
         };
       }
       return {
         complete: 2,
         incomplete: 1,
-        avg: 1.5,
       };
     case SideType.ROAD:
       return {
         complete: 1,
         incomplete: 1,
-        avg: 1,
       };
     default:
       throw new Error();
@@ -828,14 +825,14 @@ function getAroundZones(zones: Zones, coords: CellCoords) {
   };
 }
 
-type PossibleTurn = {
+export type PossibleTurn = {
   card: InGameCard;
   coords: CellCoords;
   score: UnionScore;
   peasantPlace: PeasantPlace | undefined;
 };
 
-export function fitNextCard(gameState: GameState): PossibleTurn | undefined {
+export function getPossibleTurns(gameState: GameState): PossibleTurn[] {
   let currentCard = gameState.cardPool[gameState.cardPool.length - 1];
 
   if (!currentCard) {
@@ -872,25 +869,25 @@ export function fitNextCard(gameState: GameState): PossibleTurn | undefined {
     currentCard = rotateCardImmutable(currentCard);
   }
 
+  if (possibleTurns.length > 1) {
+    possibleTurns.sort(
+      (a, b) =>
+        Math.round(b.score.complete + b.score.incomplete) * 100 -
+        Math.round((a.score.complete + a.score.incomplete) * 100),
+    );
+  }
+
+  return possibleTurns;
+}
+
+export function fitNextCard(gameState: GameState): PossibleTurn | undefined {
+  const possibleTurns = getPossibleTurns(gameState);
+
   if (possibleTurns.length === 0) {
     return undefined;
   }
 
-  possibleTurns.sort((a, b) => b.score.avg - a.score.avg);
-
-  console.log('Possible turns:');
-  for (let i = 0; i < possibleTurns.length; i += 1) {
-    const turn = possibleTurns[i];
-    console.log(
-      `#${i + 1} [${turn.coords.col}:${turn.coords.row}] (c:${
-        turn.score.complete
-      } i:${turn.score.incomplete} a:${turn.score.avg})`,
-      turn.peasantPlace,
-    );
-  }
-
   const maxScore = possibleTurns[0].score;
-
   possibleTurns.filter((turn) => turn.score === maxScore);
 
   return getRandomItem(possibleTurns);
@@ -921,7 +918,6 @@ function makeZeroScore(): UnionScore {
   return {
     complete: 0,
     incomplete: 0,
-    avg: 0,
   };
 }
 
@@ -931,7 +927,6 @@ function sumUnionScore(scores: UnionScore[]): UnionScore {
   for (const score of scores) {
     sum.complete += score.complete;
     sum.incomplete += score.incomplete;
-    sum.avg += score.avg;
   }
 
   return sum;
@@ -941,7 +936,6 @@ function amplifyScore(score: UnionScore, amplifier: number): UnionScore {
   return {
     complete: score.complete * amplifier,
     incomplete: score.incomplete * amplifier,
-    avg: score.avg * amplifier,
   };
 }
 
@@ -949,7 +943,6 @@ function addAbsoluteScore(score: UnionScore, add: number): UnionScore {
   return {
     complete: score.complete + add,
     incomplete: score.incomplete + add,
-    avg: score.avg + add,
   };
 }
 
@@ -957,7 +950,6 @@ function addUnionScore(score: UnionScore, add: UnionScore): UnionScore {
   return {
     complete: score.complete + add.complete,
     incomplete: score.incomplete + add.incomplete,
-    avg: score.avg + add.avg,
   };
 }
 
@@ -1109,7 +1101,6 @@ function calculateMonasteryBonus(
         scores.push({
           complete: points,
           incomplete: points,
-          avg: points,
         });
       }
     }

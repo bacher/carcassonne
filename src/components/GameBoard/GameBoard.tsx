@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { last } from 'lodash';
+import cn from 'classnames';
 
 import { getCellByPoint, render } from '../../utils/render';
 import { GameState, Player, Point, Zone } from '../../data/types';
@@ -14,8 +15,10 @@ import {
   getActivePlayer,
   getAroundCells,
   getFreeUnionsForCard,
+  getPossibleTurns,
   instantiateCard,
   makeCellCoordsByCoords,
+  PossibleTurn,
   putCardInGame,
 } from '../../utils/logic';
 import { CardPool } from '../CardPool';
@@ -26,6 +29,7 @@ import { useStateRef } from '../../hooks/useStateRef';
 import { NextCard } from '../NextCard';
 import { PeasantPlace, PutPeasant } from '../PutPeasant';
 import { GameStats } from '../GameStats';
+import { PossibleTurns } from '../PossibleTurns';
 
 const WIDTH = 800;
 const HEIGHT = 600;
@@ -133,7 +137,11 @@ export function GameBoard({ game }: Props) {
       }
     | undefined
   >();
-  // >();
+
+  const [possibleTurns, setPossibleTurns] = useState<PossibleTurn[]>([]);
+  const [activeTurn, setActiveTurn] = useStateRef<PossibleTurn | undefined>(
+    undefined,
+  );
 
   useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
 
@@ -144,10 +152,12 @@ export function GameBoard({ game }: Props) {
 
   function renderBoard() {
     const ctx = canvasRef.current!.getContext('2d')!;
+
     render(ctx, gameState, {
       size: { width: WIDTH, height: HEIGHT },
       viewport: viewport.pos,
       hoverCellId: effects.hoverCellId,
+      activeTurn: activeTurn.current ?? undefined,
     });
 
     if (ENABLE_LOADING) {
@@ -291,6 +301,8 @@ export function GameBoard({ game }: Props) {
                 coords,
                 peasantPlace,
               });
+              setPossibleTurns([]);
+              setActiveTurn(undefined);
 
               forceUpdate();
               renderBoard();
@@ -385,29 +397,35 @@ export function GameBoard({ game }: Props) {
           />
         )}
       </div>
-      <div className={styles.rightPanel}>
+      <div className={styles.column}>
         <GameStats gameState={gameState} />
         <PlayersList
           players={gameState.players}
           activePlayerIndex={gameState.activePlayerIndex}
           onDoTurnClick={() => {
             console.time('find place');
-            const fitResult = fitNextCard(gameState);
+            const turn = fitNextCard(gameState);
             console.timeEnd('find place');
 
-            if (fitResult) {
-              putCardInGame(gameState, {
-                card: fitResult.card,
-                coords: fitResult.coords,
-                peasantPlace: fitResult.peasantPlace,
-              });
+            if (turn) {
+              putCardInGame(gameState, turn);
+              setPossibleTurns([]);
+              setActiveTurn(undefined);
             } else if (window.confirm("Can't be placed, try next?")) {
               gameState.cardPool.pop();
             }
 
             renderBoard();
             forceUpdate();
-            console.log(gameState);
+          }}
+          onGetPossibleTurnsClick={() => {
+            const turns = getPossibleTurns(gameState);
+
+            setPossibleTurns(turns);
+
+            if (turns.length === 0) {
+              window.alert('No turns available');
+            }
           }}
         />
         <div className={styles.buttons}>
@@ -491,6 +509,24 @@ export function GameBoard({ game }: Props) {
           />
         )}
       </div>
+      {possibleTurns.length > 0 && (
+        <div className={cn(styles.column, styles.wide)}>
+          <PossibleTurns
+            possibleTurns={possibleTurns}
+            onTurnApply={(turn) => {
+              putCardInGame(gameState, turn);
+              setPossibleTurns([]);
+              setActiveTurn(undefined);
+              renderBoard();
+              forceUpdate();
+            }}
+            onTurnHover={(turn) => {
+              setActiveTurn(turn);
+              renderBoard();
+            }}
+          />
+        </div>
+      )}
       {putPeasantState && (
         <PutPeasant
           card={putPeasantState.card}

@@ -8,12 +8,14 @@ type Props = {
   players: Player[];
   activePlayerIndex: number;
   onDoTurnClick: (playerIndex: number) => void;
+  onGetPossibleTurnsClick: (playerIndex: number) => void;
 };
 
 export function PlayersList({
   players,
   activePlayerIndex,
   onDoTurnClick,
+  onGetPossibleTurnsClick,
 }: Props) {
   return (
     <div className={styles.root}>
@@ -44,7 +46,17 @@ export function PlayersList({
                 onDoTurnClick(activePlayerIndex);
               }}
             >
-              Make turn
+              Make Turn
+            </button>
+            <button
+              type="button"
+              disabled={i !== activePlayerIndex}
+              onClick={(event) => {
+                event.preventDefault();
+                onGetPossibleTurnsClick(activePlayerIndex);
+              }}
+            >
+              Get Turns
             </button>
           </div>
         </div>

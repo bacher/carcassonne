@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import cn from 'classnames';
 
-import type { PossibleTurn, UnionScore } from '../../utils/logic';
-import type { PeasantPlace } from '../PutPeasant';
+import type { PeasantPlace } from '../../data/types';
+import type { PossibleTurn } from '../../utils/logic';
 
 import styles from './PossibleTurns.module.css';
 

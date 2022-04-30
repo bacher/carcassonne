@@ -1,24 +1,4 @@
-import { CardTypeId } from './types';
-
-export const enum Building {
-  Monastery = 1,
-}
-
-export const enum SideType {
-  TOWN = 1,
-  ROAD,
-}
-
-type CardBase = {
-  sides: [
-    SideType | undefined,
-    SideType | undefined,
-    SideType | undefined,
-    SideType | undefined,
-  ];
-  connects: [number, number, number, number];
-  building?: Building;
-};
+import { Building, CardBase, CardTypeId, SideType, Union } from './types';
 
 type CardTypeInfoPartial = CardBase & {
   id: CardTypeId;
@@ -28,19 +8,6 @@ type CardTypeInfoPartial = CardBase & {
 
 export type CardTypeInfo = CardTypeInfoPartial & {
   maxOrientation: number;
-  unions: Union[];
-};
-
-export const enum Side {
-  UP,
-  RIGHT,
-  DOWN,
-  LEFT,
-}
-
-export type InGameCard = CardBase & {
-  cardTypeId: CardTypeId;
-  isPrimeTown: boolean;
   unions: Union[];
 };
 
@@ -199,13 +166,11 @@ const cardsPartial: CardTypeInfoPartial[] = [
   },
 ];
 
-export const cards: CardTypeInfo[] = cardsPartial.map((card) => {
-  return {
-    ...card,
-    maxOrientation: calMaxOrientation(card),
-    unions: calcUnions(card),
-  };
-});
+export const cards: CardTypeInfo[] = cardsPartial.map((card) => ({
+  ...card,
+  maxOrientation: calMaxOrientation(card),
+  unions: calcUnions(card),
+}));
 
 function calMaxOrientation(card: CardTypeInfoPartial): number {
   if (
@@ -231,14 +196,6 @@ function calMaxOrientation(card: CardTypeInfoPartial): number {
   return 4;
 }
 
-export type UnionIndex = number
-
-export type Union = {
-  unionSides: Side[];
-  unionSideType: SideType.TOWN | SideType.ROAD;
-};
-
-
 function calcUnions(card: CardTypeInfoPartial): Union[] {
   if (card.connects.length !== 4) {
     throw new Error();
@@ -247,7 +204,7 @@ function calcUnions(card: CardTypeInfoPartial): Union[] {
   const alone: Union[] = [];
   const unions = new Map<number, Union>();
 
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 4; i += 1) {
     const sideType = card.sides[i];
 
     if (sideType === undefined) {
@@ -288,6 +245,7 @@ export const cardsById = cards.reduce((acc, card) => {
   return acc;
 }, {} as Record<CardTypeId, CardTypeInfo>);
 
+// eslint-disable-next-line no-console
 console.log(
   'Total desk size:',
   cards.reduce((acc, card) => acc + card.initialInDeckCount, 0),

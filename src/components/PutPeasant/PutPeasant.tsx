@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Building, InGameCard } from '../../data/cards';
+import { PeasantPlace, Building, InGameCard } from '../../data/types';
 import { drawCard } from '../../utils/render';
 import {
   getQuadrant,
@@ -36,15 +36,6 @@ function PeasantRadio({ pos, isSelected, onSelect }: PeasantProps) {
   );
 }
 
-export type PeasantPlace =
-  | {
-      type: 'CENTER';
-    }
-  | {
-      type: 'UNION';
-      unionIndex: number;
-    };
-
 const OFFSET = 0.148;
 
 type Props = {
@@ -59,6 +50,7 @@ export function PutPeasant({ card, allowedUnions, onChoose, onCancel }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvasRef.current!.getContext('2d')!;
     ctx.save();
     ctx.scale(6, 6);

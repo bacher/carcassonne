@@ -1,7 +1,15 @@
 import { last } from 'lodash';
 
-import type { GameState, Player, Point, Zone } from '../data/types';
-import { Building, InGameCard, SideType } from '../data/cards';
+import {
+  GameState,
+  Player,
+  Point,
+  Zone,
+  Building,
+  InGameCard,
+  SideType,
+  Peasant,
+} from '../data/types';
 import {
   cellIdToCoords,
   getCellId,
@@ -10,7 +18,7 @@ import {
   getSideDirection,
   PossibleTurn,
 } from './logic';
-import { Peasant, playerColors } from '../data/types';
+import { playerColors } from '../data/const';
 
 export const CARD_SIZE = 50;
 
@@ -267,7 +275,7 @@ export function drawCard(
         case 3: {
           const polygon = [];
 
-          for (let i = 0; i < sides.length; i++) {
+          for (let i = 0; i < sides.length; i += 1) {
             const side = sides[i];
             const [p1, p2] = getSideLine(topLeft, i);
 
@@ -292,11 +300,15 @@ export function drawCard(
             { width: CARD_SIZE, height: CARD_SIZE },
             TOWN_STYLE,
           );
+          break;
+        default:
+          throw new Error();
       }
     }
   }
 
   if (card.isPrimeTown) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const townUnion = card.unions.find(
       (union) => union.unionSideType === SideType.TOWN,
     )!;
@@ -433,7 +445,7 @@ function drawPolygon(
 ): void {
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i++) {
+  for (let i = 1; i < points.length; i += 1) {
     ctx.lineTo(points[i].x, points[i].y);
   }
   ctx.closePath();
@@ -505,11 +517,11 @@ function drawGrid(
   ctx.save();
   ctx.translate(offset.x - 0.5, offset.y - 0.5);
   ctx.beginPath();
-  for (let i = -GRID_SIZE; i < GRID_SIZE; i++) {
+  for (let i = -GRID_SIZE; i < GRID_SIZE; i += 1) {
     ctx.moveTo(i * CELL_SIZE, -GRID_SIZE * CELL_SIZE);
     ctx.lineTo(i * CELL_SIZE, GRID_SIZE * CELL_SIZE);
   }
-  for (let j = -GRID_SIZE; j < GRID_SIZE; j++) {
+  for (let j = -GRID_SIZE; j < GRID_SIZE; j += 1) {
     ctx.moveTo(-GRID_SIZE * CELL_SIZE, j * CELL_SIZE);
     ctx.lineTo(GRID_SIZE * CELL_SIZE, j * CELL_SIZE);
   }
@@ -525,7 +537,7 @@ function drawGrid(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = '12px sans-serif';
-  for (let i = -GRID_SIZE; i < GRID_SIZE; i++) {
+  for (let i = -GRID_SIZE; i < GRID_SIZE; i += 1) {
     const label = `${i}`;
     const x = i * CELL_SIZE + CARD_SIZE / 2 + offset.x;
     const y1 = 10;
@@ -536,7 +548,7 @@ function drawGrid(
     ctx.strokeText(label, x, y2, CARD_SIZE);
     ctx.fillText(label, x, y2, CARD_SIZE);
   }
-  for (let j = -GRID_SIZE; j < GRID_SIZE; j++) {
+  for (let j = -GRID_SIZE; j < GRID_SIZE; j += 1) {
     const label = `${j}`;
     const y = j * CELL_SIZE + CARD_SIZE / 2 + offset.y;
     const x1 = 10;

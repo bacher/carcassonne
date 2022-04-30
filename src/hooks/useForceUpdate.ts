@@ -5,6 +5,7 @@ export function useForceUpdate() {
   const valueRef = useRef(0);
 
   return () => {
-    setId(++valueRef.current);
+    valueRef.current += 1;
+    setId(valueRef.current);
   };
 }

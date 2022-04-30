@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-import { MenuPlayer, playerColors } from '../../data/types';
+import type { MenuPlayer } from '../../data/types';
+import { playerColors } from '../../data/const';
 import styles from './MainMenu.module.css';
 
 type LocalPlayer = {

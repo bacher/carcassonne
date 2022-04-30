@@ -1,6 +1,7 @@
 import cn from 'classnames';
 
-import { Player, playerColors } from '../../data/types';
+import type { Player } from '../../data/types';
+import { playerColors } from '../../data/const';
 
 import styles from './PlayersList.module.css';
 

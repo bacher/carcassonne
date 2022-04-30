@@ -3,12 +3,20 @@ import { last } from 'lodash';
 import cn from 'classnames';
 
 import { getCellByPoint, render } from '../../utils/render';
-import { GameState, MenuPlayer, Player, Point, Zone } from '../../data/types';
+import {
+  GameState,
+  MenuPlayer,
+  Player,
+  Point,
+  Zone,
+  PeasantPlace,
+  InGameCard,
+  CellCoords,
+  CellId,
+} from '../../data/types';
 import styles from './GameBoard.module.css';
 import {
   canBePlaced,
-  CellCoords,
-  CellId,
   cellIdToCoords,
   fitNextCard,
   generateCardPool,
@@ -23,11 +31,11 @@ import {
 } from '../../utils/logic';
 import { CardPool } from '../CardPool';
 import { PlayersList } from '../PlayersList';
-import { cards, cardsById, InGameCard } from '../../data/cards';
+import { cards, cardsById } from '../../data/cards';
 import { useForceUpdate } from '../../hooks/useForceUpdate';
 import { useStateRef } from '../../hooks/useStateRef';
 import { NextCard } from '../NextCard';
-import { PeasantPlace, PutPeasant } from '../PutPeasant';
+import { PutPeasant } from '../PutPeasant';
 import { GameStats } from '../GameStats';
 import { PossibleTurns } from '../PossibleTurns';
 import { loadData, saveData } from '../../utils/localStorage';
@@ -162,12 +170,13 @@ export function GameBoard({ gameSetup }: Props) {
 
   useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
 
-  // @ts-ignore
-  window.gameState = gameState;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).gameState = gameState;
 
   const nextCard = last(gameState.cardPool);
 
   function renderBoard() {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvasRef.current!.getContext('2d')!;
 
     render(ctx, gameState, {
@@ -221,6 +230,7 @@ export function GameBoard({ gameSetup }: Props) {
         potentialZones: new Set(state.potentialZones),
       };
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(error);
     }
 
@@ -337,8 +347,6 @@ export function GameBoard({ gameSetup }: Props) {
 
             const allowedUnions = getFreeUnionsForCard(gameState, card, coords);
 
-            console.log('allowedUnions:', card, allowedUnions);
-
             setPutPeasantState({
               card,
               allowedUnions,
@@ -425,9 +433,11 @@ export function GameBoard({ gameSetup }: Props) {
           players={gameState.players}
           activePlayerIndex={gameState.activePlayerIndex}
           onDoTurnClick={() => {
+            /* eslint-disable no-console */
             console.time('find place');
             const turn = fitNextCard(gameState);
             console.timeEnd('find place');
+            /* eslint-disable no-console */
 
             if (turn) {
               putCardInGame(gameState, turn);

@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import cn from 'classnames';
+import { last } from 'lodash';
 
-import type { InGameCard } from '../../data/cards';
-import { Building, cards, SideType } from '../../data/cards';
-import { CardTypeId } from '../../data/types';
+import { CardTypeId, SideType, Building, InGameCard } from '../../data/types';
+import { cards } from '../../data/cards';
 import { drawCard } from '../../utils/render';
 
 import styles from './CardPool.module.css';
-import { last } from 'lodash';
 
 type Props = {
   cardPool: InGameCard[];
@@ -35,13 +34,14 @@ export function CardPool({ cardPool, onChoose }: Props) {
 
     for (const card of cardPool) {
       if (store[card.cardTypeId]) {
-        store[card.cardTypeId].count++;
+        store[card.cardTypeId].count += 1;
       } else {
         store[card.cardTypeId] = {
           card,
           count: 1,
           onRef: (el) => {
             if (el) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const ctx = el.getContext('2d')!;
               drawCard(ctx, { card });
             }
@@ -126,8 +126,9 @@ export function CardPool({ cardPool, onChoose }: Props) {
       </div>
       <div className={styles.cards}>
         {filteredList.map((item) => (
-          <div
+          <button
             key={item.card.cardTypeId}
+            type="button"
             className={cn(styles.itemWrapper, {
               [styles.itemWrapperCurrent]:
                 nextCard && item.card.cardTypeId === nextCard.cardTypeId,
@@ -148,7 +149,7 @@ export function CardPool({ cardPool, onChoose }: Props) {
                 <span className={styles.number}>{item.count}</span>
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
       <div className={styles.footer}>

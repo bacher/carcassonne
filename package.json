@@ -7,7 +7,8 @@
     "build": "react-scripts build",
     "build:ci": "CI=yes yarn test && yarn build",
     "build:pages": "PUBLIC_URL='/carcassonne/' yarn build:ci",
-    "test": "tsc",
+    "test": "yarn lint && tsc",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx --fix --max-warnings 0",
     "format": "prettier -w src"
   },
   "dependencies": {
@@ -24,6 +25,16 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.14.181",
+    "@typescript-eslint/eslint-plugin": "latest",
+    "@typescript-eslint/parser": "^5.21.0",
+    "eslint": "^8.14.0",
+    "eslint-config-airbnb": "latest",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "latest",
+    "eslint-plugin-jsx-a11y": "latest",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.28.0",
     "prettier": "^2.6.2"
   },
   "packageManager": "yarn@3.2.0",

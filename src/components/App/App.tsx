@@ -34,6 +34,7 @@ export function App() {
     try {
       return loadData<GamePresetSnapshot>(`game[${gameId}]`, SCHEMA_REV);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(error);
     }
 
@@ -46,17 +47,21 @@ export function App() {
 
   return (
     <MainMenu
-      onStartPlay={(game) => {
-        const gameId = `game${Math.floor(Math.random() * 10000)}`;
+      onStartPlay={(newGame) => {
+        const newGameId = `game${Math.floor(Math.random() * 10000)}`;
 
         const gameSetup = {
-          ...game,
-          gameId,
+          ...newGame,
+          gameId: newGameId,
         };
 
-        saveData<GamePresetSnapshot>(`game[${gameId}]`, SCHEMA_REV, gameSetup);
-        window.location.hash = `#${gameId}`;
-        setGameId(gameId);
+        saveData<GamePresetSnapshot>(
+          `game[${newGameId}]`,
+          SCHEMA_REV,
+          gameSetup,
+        );
+        window.location.hash = `#${newGameId}`;
+        setGameId(newGameId);
       }}
     />
   );

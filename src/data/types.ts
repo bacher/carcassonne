@@ -1,8 +1,52 @@
-import { InGameCard } from './cards';
-import { CellCoords } from '../utils/logic';
-import { PeasantPlace } from '../components/PutPeasant';
+export type CellId = number;
+
+export type CellCoords = {
+  cellId: CellId;
+  col: number;
+  row: number;
+};
 
 export type CardTypeId = `card:${string}`;
+
+export const enum SideType {
+  TOWN = 1,
+  ROAD,
+}
+
+export const enum Side {
+  UP,
+  RIGHT,
+  DOWN,
+  LEFT,
+}
+
+export const enum Building {
+  Monastery = 1,
+}
+
+export type UnionIndex = number;
+
+export type Union = {
+  unionSides: Side[];
+  unionSideType: SideType.TOWN | SideType.ROAD;
+};
+
+export type CardBase = {
+  sides: [
+    SideType | undefined,
+    SideType | undefined,
+    SideType | undefined,
+    SideType | undefined,
+  ];
+  connects: [number, number, number, number];
+  building?: Building;
+};
+
+export type InGameCard = CardBase & {
+  cardTypeId: CardTypeId;
+  isPrimeTown: boolean;
+  unions: Union[];
+};
 
 export type Point = {
   x: number;
@@ -16,6 +60,15 @@ export const enum GameObjectType {
   TOWN,
   MONASTERY,
 }
+
+export type PeasantPlace =
+  | {
+      type: 'CENTER';
+    }
+  | {
+      type: 'UNION';
+      unionIndex: number;
+    };
 
 export type Peasant = {
   playerIndex: number;
@@ -46,14 +99,6 @@ export const enum Color {
   GREEN,
   BLACK,
 }
-
-export const playerColors: Record<number, string> = {
-  [Color.RED]: '#f00',
-  [Color.BLUE]: '#00f',
-  [Color.GREEN]: '#0f0',
-  [Color.YELLOW]: '#ff0',
-  [Color.BLACK]: '#000',
-};
 
 export type MenuPlayer = {
   name: string;

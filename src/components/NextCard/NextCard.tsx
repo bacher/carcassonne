@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 
-import styles from './NextCard.module.css';
-import type { InGameCard } from '../../data/cards';
+import type { InGameCard } from '../../data/types';
 import { drawCard } from '../../utils/render';
 import { rotateCard } from '../../utils/logic';
+import styles from './NextCard.module.css';
 
 type Props = {
   card: InGameCard;
@@ -15,6 +15,7 @@ export function NextCard({ card, onHoverChange, onChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     drawCard(canvasRef.current!.getContext('2d')!, {
       card,
     });
@@ -34,6 +35,7 @@ export function NextCard({ card, onHoverChange, onChange }: Props) {
       <div className={styles.controls}>
         <button
           className={styles.rotateButton}
+          type="button"
           onClick={(event) => {
             event.preventDefault();
             rotateCard(card);
@@ -46,6 +48,7 @@ export function NextCard({ card, onHoverChange, onChange }: Props) {
         </button>
         <button
           className={styles.rotateButton}
+          type="button"
           onClick={(event) => {
             event.preventDefault();
             rotateCard(card);

@@ -2,16 +2,8 @@ import { shuffle } from 'lodash';
 
 import {
   Building,
-  cards,
-  cardsById,
-  CardTypeInfo,
-  InGameCard,
-  Side,
-  SideType,
-  Union,
-  UnionIndex,
-} from '../data/cards';
-import {
+  CellCoords,
+  CellId,
   GameObjectType,
   GameState,
   Player,
@@ -19,8 +11,14 @@ import {
   Point,
   Zone,
   Zones,
+  InGameCard,
+  Side,
+  SideType,
+  Union,
+  UnionIndex,
+  PeasantPlace,
 } from '../data/types';
-import { PeasantPlace } from '../components/PutPeasant';
+import { cards, cardsById, CardTypeInfo } from '../data/cards';
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
@@ -52,14 +50,6 @@ function rotateCardImmutable(card: InGameCard): InGameCard {
   rotateCard(rotatedCard);
   return rotatedCard;
 }
-
-export type CellId = number;
-
-export type CellCoords = {
-  cellId: CellId;
-  col: number;
-  row: number;
-};
 
 export function makeCellCoordsByCellId(cellId: CellId): CellCoords {
   return {
@@ -96,8 +86,8 @@ export function getAroundCells({
 export function getAroundSquareCells({ col, row }: CellCoords): CellCoords[] {
   const cells: CellCoords[] = [];
 
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
+  for (let x = -1; x <= 1; x += 1) {
+    for (let y = -1; y <= 1; y += 1) {
       if (x !== 0 || y !== 0) {
         cells.push(
           makeCellCoordsByCoords({
@@ -129,13 +119,16 @@ const BOUND = 2 ** 12;
 const HALF_BOUND = BOUND / 2;
 
 export function getCellId({ col, row }: { col: number; row: number }): CellId {
+  // eslint-disable-next-line no-bitwise
   return ((row + HALF_BOUND) << 12) + col + HALF_BOUND;
 }
 
 export function cellIdToCoords(cellId: CellId): CellCoords {
   return {
     cellId,
+    // eslint-disable-next-line no-bitwise
     row: (cellId >> 12) - HALF_BOUND,
+    // eslint-disable-next-line no-bitwise
     col: (cellId & 0x0fff) - HALF_BOUND,
   };
 }
@@ -257,13 +250,14 @@ function processCompletedObject(
     const player = gameState.players[playerIndex];
 
     if (zones.length === maxPeasants) {
+      // eslint-disable-next-line no-console
       console.log(`Give Player[${playerIndex}] ${totalScore} points.`);
       player.score += totalScore;
     }
 
     for (const zone of zones) {
       zone.peasant = undefined;
-      player.peasantsCount++;
+      player.peasantsCount += 1;
     }
   }
 }
@@ -272,9 +266,10 @@ function processCompletedMonastery(gameState: GameState, zone: Zone): void {
   if (zone.peasant && zone.peasant.place.type === 'CENTER') {
     const player = gameState.players[zone.peasant.playerIndex];
 
+    // eslint-disable-next-line no-console
     console.log(`Give Player[${zone.peasant.playerIndex}] 9 points.`);
     player.score += 9;
-    player.peasantsCount++;
+    player.peasantsCount += 1;
     zone.peasant = undefined;
   }
 }
@@ -391,21 +386,19 @@ function getCompletedObjects(
         break;
       }
 
-      if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
-        continue;
-      }
+      if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+        const result = checkCompletionExtend(
+          gameState,
+          nextZone,
+          counterSide[side],
+          stopBarrier,
+          zones,
+        );
 
-      const result = checkCompletionExtend(
-        gameState,
-        nextZone,
-        counterSide[side],
-        stopBarrier,
-        zones,
-      );
-
-      if (!result) {
-        isUnionFailed = true;
-        break;
+        if (!result) {
+          isUnionFailed = true;
+          break;
+        }
       }
     }
 
@@ -426,7 +419,7 @@ export function getFreeUnionsForCard(
 ): number[] {
   const freeUnions: number[] = [];
 
-  for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex++) {
+  for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex += 1) {
     const union = card.unions[unionIndex];
     const { unionSides } = union;
     const neighbors = getNeighbors(unionSides, coords);
@@ -480,7 +473,7 @@ export function getUnionsForCard(
 ): GetUniformResult[] {
   const unions: GetUniformResult[] = [];
 
-  for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex++) {
+  for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex += 1) {
     const union = card.unions[unionIndex];
     const { unionSides } = union;
     const neighbors = getNeighbors(unionSides, coords);
@@ -550,7 +543,11 @@ function checkCompletionExtend(
   const sides = [];
   const union = zone.card.unions.find((union) =>
     union.unionSides.includes(comeFrom),
-  )!;
+  );
+
+  if (!union) {
+    throw new Error();
+  }
 
   for (const side of union.unionSides) {
     if (side !== comeFrom) {
@@ -575,6 +572,7 @@ function checkCompletionExtend(
 
     if (!nextZone) {
       if (allowIncomplete) {
+        // eslint-disable-next-line no-continue
         continue;
       } else {
         return false;
@@ -610,7 +608,11 @@ function checkFreeUnionExtend(
   const sides = [];
   const union = zone.card.unions.find((union) =>
     union.unionSides.includes(comeFrom),
-  )!;
+  );
+
+  if (!union) {
+    throw new Error();
+  }
 
   if (getZoneUnionOwnerPlayerIndex(zone, union) !== undefined) {
     return false;
@@ -632,20 +634,18 @@ function checkFreeUnionExtend(
   for (const { side, coords } of neighbors) {
     const nextZone = gameState.zones.get(coords.cellId);
 
-    if (!nextZone) {
-      continue;
-    }
+    if (nextZone) {
+      if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+        const isCheckSuccess = checkFreeUnionExtend(
+          gameState,
+          nextZone,
+          counterSide[side],
+          stopBarrier,
+        );
 
-    if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
-      const isCheckSuccess = checkFreeUnionExtend(
-        gameState,
-        nextZone,
-        counterSide[side],
-        stopBarrier,
-      );
-
-      if (!isCheckSuccess) {
-        return false;
+        if (!isCheckSuccess) {
+          return false;
+        }
       }
     }
   }
@@ -669,6 +669,7 @@ function mergeZoneScore(
       (alreadyScore.complete !== zoneScore.complete ||
         alreadyScore.incomplete !== zoneScore.incomplete)
     ) {
+      // eslint-disable-next-line no-console
       console.warn(
         `Zone ${cellId} score doesn't equals ${alreadyScore} !== ${zoneScore}`,
       );
@@ -744,7 +745,11 @@ function checkUnionExtend(
   const sides = [];
   const union = zone.card.unions.find((union) =>
     union.unionSides.includes(comeFrom),
-  )!;
+  );
+
+  if (!union) {
+    throw new Error();
+  }
 
   const results: CheckUnionResults = {
     scorePerZones: new Map([
@@ -848,7 +853,7 @@ export function getPossibleTurns(gameState: GameState): PossibleTurn[] {
 
   const possibleTurns: PossibleTurn[] = [];
 
-  for (let i = 0; i < cardInfo.maxOrientation; i++) {
+  for (let i = 0; i < cardInfo.maxOrientation; i += 1) {
     for (const cellCoords of cellsCoords) {
       if (canBePlaced(gameState.zones, currentCard, cellCoords)) {
         for (const { score, peasantPlace } of getTurnScores(
@@ -1120,7 +1125,7 @@ export function generateCardPool(): {
   const pool: InGameCard[] = [];
 
   for (const card of Array.from(cards)) {
-    for (let i = 0; i < card.initialInDeckCount; i++) {
+    for (let i = 0; i < card.initialInDeckCount; i += 1) {
       pool.push(instantiateCard(card));
     }
   }

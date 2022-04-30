@@ -872,7 +872,7 @@ export function getPossibleTurns(gameState: GameState): PossibleTurn[] {
   if (possibleTurns.length > 1) {
     possibleTurns.sort(
       (a, b) =>
-        Math.round(b.score.complete + b.score.incomplete) * 100 -
+        Math.round((b.score.complete + b.score.incomplete) * 100) -
         Math.round((a.score.complete + a.score.incomplete) * 100),
     );
   }

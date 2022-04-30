@@ -28,29 +28,27 @@ const FIELD_STYLE = '#9cffad';
 
 const GRID_SIZE = 25;
 
-const arcs: Record<string, [number, number]> = {
-  '0x1': [(1 / 2) * Math.PI, Math.PI],
-  '1x2': [(3 / 4) * Math.PI, 2 * Math.PI],
-  '2x3': [Math.PI, (3 / 4) * Math.PI],
-  '0x3': [0, (1 / 2) * Math.PI],
-};
-
 export function render(
   ctx: CanvasRenderingContext2D,
   gameState: GameState,
   {
-    size: { width, height },
+    size,
     viewport,
     hoverCellId,
   }: { size: Size; viewport: Point; hoverCellId: number | undefined },
 ) {
-  ctx.clearRect(0, 0, width, height);
+  ctx.clearRect(0, 0, size.width, size.height);
 
   ctx.save();
-  ctx.translate(width / 2 + viewport.x, height / 2 + viewport.y);
 
-  drawGrid(ctx);
+  const offset = {
+    x: size.width / 2 + viewport.x,
+    y: size.height / 2 + viewport.y,
+  };
 
+  drawGrid(ctx, { size, offset });
+
+  ctx.translate(offset.x, offset.y);
   for (const zone of gameState.zones.values() as unknown as Zone[]) {
     const topLeft = {
       x: zone.coords.col * CELL_SIZE,
@@ -466,24 +464,55 @@ function drawText(
   ctx.fillText(text, x, y);
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D): void {
+function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  { size, offset }: { size: Size; offset: Point },
+): void {
   ctx.save();
-  ctx.translate(-0.5, -0.5);
+  ctx.translate(offset.x - 0.5, offset.y - 0.5);
   ctx.beginPath();
-
   for (let i = -GRID_SIZE; i < GRID_SIZE; i++) {
     ctx.moveTo(i * CELL_SIZE, -GRID_SIZE * CELL_SIZE);
     ctx.lineTo(i * CELL_SIZE, GRID_SIZE * CELL_SIZE);
   }
-
   for (let j = -GRID_SIZE; j < GRID_SIZE; j++) {
     ctx.moveTo(-GRID_SIZE * CELL_SIZE, j * CELL_SIZE);
     ctx.lineTo(GRID_SIZE * CELL_SIZE, j * CELL_SIZE);
   }
-
   ctx.lineWidth = 0.5;
   ctx.strokeStyle = '#333';
   ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = '#fff';
+  ctx.fillStyle = '#444';
+  ctx.lineWidth = 5;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '12px sans-serif';
+  for (let i = -GRID_SIZE; i < GRID_SIZE; i++) {
+    const label = `${i}`;
+    const x = i * CELL_SIZE + CARD_SIZE / 2 + offset.x;
+    const y1 = 10;
+    const y2 = size.height - y1;
+
+    ctx.strokeText(label, x, y1, CARD_SIZE);
+    ctx.fillText(label, x, y1, CARD_SIZE);
+    ctx.strokeText(label, x, y2, CARD_SIZE);
+    ctx.fillText(label, x, y2, CARD_SIZE);
+  }
+  for (let j = -GRID_SIZE; j < GRID_SIZE; j++) {
+    const label = `${j}`;
+    const y = j * CELL_SIZE + CARD_SIZE / 2 + offset.y;
+    const x1 = 10;
+    const x2 = size.width - x1;
+
+    ctx.strokeText(label, x1, y, CARD_SIZE);
+    ctx.fillText(label, x1, y, CARD_SIZE);
+    ctx.strokeText(label, x2, y, CARD_SIZE);
+    ctx.fillText(label, x2, y, CARD_SIZE);
+  }
   ctx.restore();
 }
 

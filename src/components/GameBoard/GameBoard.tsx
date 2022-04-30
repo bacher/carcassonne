@@ -219,6 +219,15 @@ export function GameBoard({ game }: Props) {
     }
   }
 
+  function applyDragMove(event: MouseEvent): void {
+    const deltaX = event.screenX - dragStartPos.x;
+    const deltaY = event.screenY - dragStartPos.y;
+    viewport.pos.x += deltaX;
+    dragStartPos.x += deltaX;
+    viewport.pos.y += deltaY;
+    dragStartPos.y += deltaY;
+  }
+
   useEffect(() => {
     function onMouseMove(event: MouseEvent) {
       if (event.button !== 0) {
@@ -239,8 +248,7 @@ export function GameBoard({ game }: Props) {
       }
 
       if (mouseState === MouseState.DRAGGING) {
-        viewport.pos.x = event.screenX - dragStartPos.x;
-        viewport.pos.y = event.screenY - dragStartPos.y;
+        applyDragMove(event);
         renderBoard();
       } else {
         actualizeHoverCell();
@@ -254,8 +262,7 @@ export function GameBoard({ game }: Props) {
       setMouseDown(false);
 
       if (mouseState === MouseState.DRAGGING) {
-        viewport.pos.x = event.screenX - dragStartPos.x;
-        viewport.pos.y = event.screenY - dragStartPos.y;
+        applyDragMove(event);
         setMouseState(MouseState.HOVERING);
         renderBoard();
       } else {

@@ -55,10 +55,13 @@ export const playerColors: Record<number, string> = {
   [Color.BLACK]: '#000',
 };
 
-export type Player = {
+export type MenuPlayer = {
   name: string;
   isBot: boolean;
   color: Color;
+};
+
+export type Player = MenuPlayer & {
   score: number;
   peasantsCount: number;
   playerIndex: number;

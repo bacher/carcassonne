@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { MainMenu } from '../MainMenu';
 import { GameBoard } from '../GameBoard';
+import { MenuPlayer } from '../../data/types';
+
+const SCHEMA_REV = 1;
+
+type SavedGamePreset = {
+  schemaRev: number;
+  gameId: string;
+  players: MenuPlayer[];
+};
 
 export function App() {
   const initialGameId = useMemo<string | undefined>(() => {
@@ -24,7 +33,11 @@ export function App() {
     try {
       const gameJson = window.localStorage.getItem(gameId);
       if (gameJson) {
-        return JSON.parse(gameJson);
+        const game = JSON.parse(gameJson) as SavedGamePreset;
+
+        if (game.schemaRev === SCHEMA_REV) {
+          return game;
+        }
       }
     } catch (error) {
       console.error(error);
@@ -34,7 +47,7 @@ export function App() {
   }, [gameId]);
 
   if (game) {
-    return <GameBoard game={game} />;
+    return <GameBoard gameSetup={game} />;
   }
 
   return (
@@ -46,6 +59,7 @@ export function App() {
           gameId,
           JSON.stringify({
             ...game,
+            schemaRev: SCHEMA_REV,
             gameId,
           }),
         );

@@ -1,26 +1,26 @@
 import { useState } from 'react';
 
-import { playerColors } from '../../data/types';
+import { MenuPlayer, playerColors } from '../../data/types';
 import styles from './MainMenu.module.css';
 
-type Player = {
+type LocalPlayer = {
   name: string;
   isBot: boolean;
 };
 
 type Props = {
-  onStartPlay: (game: { players: Player[] }) => void;
+  onStartPlay: (game: { players: MenuPlayer[] }) => void;
 };
 
 export function MainMenu({ onStartPlay }: Props) {
-  const [players, setPlayers] = useState<Player[]>([
+  const [players, setPlayers] = useState<LocalPlayer[]>([
     {
       name: 'Player 1',
       isBot: false,
     },
   ]);
 
-  function updatePlayer(player: Player, update: Partial<Player>) {
+  function updatePlayer(player: LocalPlayer, update: Partial<MenuPlayer>) {
     setPlayers(
       players.map((p) => {
         if (p === player) {
@@ -129,8 +129,6 @@ export function MainMenu({ onStartPlay }: Props) {
                   name,
                   isBot,
                   color: index,
-                  score: 0,
-                  peasantsCount: 7,
                 })),
               });
             }}

@@ -3,7 +3,7 @@ import { last } from 'lodash';
 import cn from 'classnames';
 
 import { getCellByPoint, render } from '../../utils/render';
-import { GameState, Player, Point, Zone } from '../../data/types';
+import { GameState, MenuPlayer, Player, Point, Zone } from '../../data/types';
 import styles from './GameBoard.module.css';
 import {
   canBePlaced,
@@ -66,9 +66,9 @@ function getAllCards(): [CellId, Zone][] {
 }
 
 type Props = {
-  game: {
+  gameSetup: {
     gameId: string;
-    players: Player[];
+    players: MenuPlayer[];
   };
 };
 
@@ -81,7 +81,7 @@ type Effects = {
   hoverCellId: number | undefined;
 };
 
-export function GameBoard({ game }: Props) {
+export function GameBoard({ gameSetup }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mouseState, setMouseState] = useState<MouseState>(MouseState.HOVERING);
   const [isShowCardPool, setShowCardPool] = useState(false);
@@ -96,7 +96,7 @@ export function GameBoard({ game }: Props) {
     if (ENABLE_LOADING) {
       const state = loadGameState();
 
-      if (state && state.gameId === game.gameId) {
+      if (state && state.gameId === gameSetup.gameId) {
         return state;
       }
     }
@@ -104,7 +104,7 @@ export function GameBoard({ game }: Props) {
     const { initialCard, cardPool } = generateCardPool();
 
     return {
-      gameId: game.gameId,
+      gameId: gameSetup.gameId,
       zones: new Map<CellId, Zone>([
         [
           initialCoords.cellId,
@@ -121,7 +121,12 @@ export function GameBoard({ game }: Props) {
       ),
       cardPool,
       activePlayerIndex: 0,
-      players: game.players,
+      players: gameSetup.players.map((menuPlayer, index) => ({
+        ...menuPlayer,
+        playerIndex: index,
+        peasantsCount: 7,
+        score: 0,
+      })),
     };
   }, []);
 
@@ -352,7 +357,7 @@ export function GameBoard({ game }: Props) {
 
   function loadGame(gameName?: string) {
     const state = loadGameState(gameName);
-    if (!state || state.gameId !== game.gameId) {
+    if (!state || state.gameId !== gameSetup.gameId) {
       window.alert('No saved game');
       return;
     }

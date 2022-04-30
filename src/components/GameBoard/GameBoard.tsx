@@ -30,9 +30,11 @@ import { NextCard } from '../NextCard';
 import { PeasantPlace, PutPeasant } from '../PutPeasant';
 import { GameStats } from '../GameStats';
 import { PossibleTurns } from '../PossibleTurns';
+import { LOCAL_STORAGE_PREFIX } from '../../data/const';
 
 const WIDTH = 800;
 const HEIGHT = 600;
+const SCHEMA_REV = 1;
 const SHOW_ALL_CARDS = false;
 const ENABLE_LOADING = false;
 
@@ -79,6 +81,16 @@ const enum MouseState {
 
 type Effects = {
   hoverCellId: number | undefined;
+};
+
+type GameStateSnapshot = {
+  schemaRev: number;
+  gameId: string;
+  cardPool: InGameCard[];
+  players: Player[];
+  activePlayerIndex: number;
+  zones: [number, Zone][];
+  potentialZones: number[];
 };
 
 export function GameBoard({ gameSetup }: Props) {
@@ -175,19 +187,22 @@ export function GameBoard({ gameSetup }: Props) {
   useEffect(renderBoard, [gameState]);
 
   function saveGameState(gameName?: string) {
-    localStorage.setItem(
-      `gameState${gameName ? `:${gameName}` : ''}`,
-      JSON.stringify({
-        ...gameState,
-        zones: Array.from(gameState.zones.entries()),
-        potentialZones: Array.from(gameState.potentialZones.values()),
-      }),
+    const gameStateSnapshot: GameStateSnapshot = {
+      ...gameState,
+      schemaRev: SCHEMA_REV,
+      zones: Array.from(gameState.zones.entries()),
+      potentialZones: Array.from(gameState.potentialZones.values()),
+    };
+
+    window.localStorage.setItem(
+      `${LOCAL_STORAGE_PREFIX}.gameState[${gameName ?? '_autosave'}]`,
+      JSON.stringify(gameStateSnapshot),
     );
   }
 
   function loadGameState(gameName?: string): GameState | undefined {
-    const stateJson = localStorage.getItem(
-      `gameState${gameName ? `:${gameName}` : ''}`,
+    const stateJson = window.localStorage.getItem(
+      `${LOCAL_STORAGE_PREFIX}.gameState[${gameName ?? '_autosave'}]`,
     );
 
     if (!stateJson) {
@@ -195,7 +210,11 @@ export function GameBoard({ gameSetup }: Props) {
     }
 
     try {
-      const state = JSON.parse(stateJson);
+      const state = JSON.parse(stateJson) as GameStateSnapshot;
+
+      if (state.schemaRev !== SCHEMA_REV) {
+        return undefined;
+      }
 
       return {
         gameId: state.gameId,
@@ -208,6 +227,8 @@ export function GameBoard({ gameSetup }: Props) {
     } catch (error) {
       console.error(error);
     }
+
+    return undefined;
   }
 
   function actualizeHoverCell() {

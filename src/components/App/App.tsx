@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+
+import { LOCAL_STORAGE_PREFIX } from '../../data/const';
+import type { MenuPlayer } from '../../data/types';
 import { MainMenu } from '../MainMenu';
 import { GameBoard } from '../GameBoard';
-import { MenuPlayer } from '../../data/types';
 
 const SCHEMA_REV = 1;
 
@@ -31,7 +33,10 @@ export function App() {
     }
 
     try {
-      const gameJson = window.localStorage.getItem(gameId);
+      const gameJson = window.localStorage.getItem(
+        `${LOCAL_STORAGE_PREFIX}.game[${gameId}]`,
+      );
+
       if (gameJson) {
         const game = JSON.parse(gameJson) as SavedGamePreset;
 
@@ -55,13 +60,15 @@ export function App() {
       onStartPlay={(game) => {
         const gameId = `game${Math.floor(Math.random() * 10000)}`;
 
-        localStorage.setItem(
+        const gameSetup: SavedGamePreset = {
+          ...game,
+          schemaRev: SCHEMA_REV,
           gameId,
-          JSON.stringify({
-            ...game,
-            schemaRev: SCHEMA_REV,
-            gameId,
-          }),
+        };
+
+        localStorage.setItem(
+          `${LOCAL_STORAGE_PREFIX}.game[${gameId}]`,
+          JSON.stringify(gameSetup),
         );
         window.location.hash = `#${gameId}`;
         setGameId(gameId);

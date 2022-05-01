@@ -155,6 +155,10 @@ export function cellIdToCoords(cellId: CellId): CellCoords {
   };
 }
 
+export function getCurrentTurnNumber(gameState: GameState): number {
+  return 72 - gameState.cardPool.length;
+}
+
 export function putCardInGame(
   gameState: GameState,
   {
@@ -178,6 +182,10 @@ export function putCardInGame(
             place: peasantPlace,
           }
         : undefined,
+    meta: {
+      turnNumber: getCurrentTurnNumber(gameState),
+      placedByPlayerIndex: gameState.activePlayerIndex,
+    },
   };
 
   if (peasantPlace !== undefined) {

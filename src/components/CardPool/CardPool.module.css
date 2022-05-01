@@ -21,11 +21,12 @@
 .itemWrapper {
   display: grid;
   grid-template-areas: 'A';
-  cursor: pointer;
+  padding: 0;
   border: none;
   background: none;
-  appearance: none;
   text-align: unset;
+  cursor: pointer;
+  appearance: none;
 }
 
 .itemWrapper:hover {

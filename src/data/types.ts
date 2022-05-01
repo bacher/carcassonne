@@ -79,6 +79,10 @@ export type Zone = {
   card: InGameCard;
   coords: CellCoords;
   peasant: Peasant | undefined;
+  meta: {
+    turnNumber: number;
+    placedByPlayerIndex: PlayerIndex | undefined;
+  };
 };
 
 export type Zones = Map<number, Zone>;

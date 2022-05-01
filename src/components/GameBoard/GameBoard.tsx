@@ -70,6 +70,10 @@ function getAllCards(): [CellId, Zone][] {
         card,
         coords: coordinates,
         peasant: undefined,
+        meta: {
+          turnNumber: 0,
+          placedByPlayerIndex: undefined,
+        },
       },
     ];
   });
@@ -132,6 +136,10 @@ export function GameBoard({ gameSetup }: Props) {
             card: initialCard,
             coords: initialCoords,
             peasant: undefined,
+            meta: {
+              turnNumber: 0,
+              placedByPlayerIndex: undefined,
+            },
           },
         ],
         ...getAllCards(),
@@ -427,7 +435,7 @@ export function GameBoard({ gameSetup }: Props) {
           />
         )}
       </div>
-      <div className={styles.column}>
+      <div className={cn(styles.column, styles.players)}>
         <GameStats gameState={gameState} />
         <PlayersList
           players={gameState.players}
@@ -522,7 +530,9 @@ export function GameBoard({ gameSetup }: Props) {
             Save as ...
           </button>
         </div>
-        {isShowCardPool && (
+      </div>
+      {isShowCardPool && (
+        <div className={styles.column}>
           <CardPool
             cardPool={gameState.cardPool}
             onChoose={(card) => {
@@ -539,8 +549,8 @@ export function GameBoard({ gameSetup }: Props) {
               renderBoard();
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
       {possibleTurns.length > 0 && (
         <div className={cn(styles.column, styles.wide)}>
           <PossibleTurns

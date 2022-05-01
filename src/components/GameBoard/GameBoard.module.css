@@ -6,8 +6,11 @@
 .column {
   display: flex;
   flex-direction: column;
-  width: 190px;
   padding: 8px;
+}
+
+.column.players {
+  width: 190px;
 }
 
 .column.wide {

@@ -6,19 +6,21 @@ import {
   CellId,
   GameObjectType,
   GameState,
+  InGameCard,
+  PeasantPlace,
   Player,
   PlayerIndex,
   Point,
-  Zone,
-  Zones,
-  InGameCard,
   Side,
   SideType,
   Union,
   UnionIndex,
-  PeasantPlace,
+  Zone,
+  Zones,
 } from '../data/types';
 import { cards, cardsById, CardTypeInfo } from '../data/cards';
+
+const counterSides = [2, 3, 0, 1];
 
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
@@ -274,8 +276,6 @@ function processCompletedMonastery(gameState: GameState, zone: Zone): void {
   }
 }
 
-const counterSide = [2, 3, 0, 1];
-
 function getNeighbors(
   sides: number[],
   coords: CellCoords,
@@ -386,11 +386,11 @@ function getCompletedObjects(
         break;
       }
 
-      if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+      if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSides[side]}`)) {
         const result = checkCompletionExtend(
           gameState,
           nextZone,
-          counterSide[side],
+          counterSides[side],
           stopBarrier,
           zones,
         );
@@ -437,14 +437,14 @@ export function getFreeUnionsForCard(
         continue;
       }
 
-      if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+      if (stopBarrier.has(`${nextZone.coords.cellId}:${counterSides[side]}`)) {
         continue;
       }
 
       const isCheckSuccess = checkFreeUnionExtend(
         gameState,
         nextZone,
-        counterSide[side],
+        counterSides[side],
         stopBarrier,
       );
 
@@ -462,7 +462,7 @@ export function getFreeUnionsForCard(
   return freeUnions;
 }
 
-type GetUniformResult = CheckUnionResults & {
+type GetUnionResult = CheckUnionResults & {
   unionIndex: UnionIndex;
 };
 
@@ -470,8 +470,8 @@ export function getUnionsForCard(
   gameState: GameState,
   card: InGameCard,
   coords: CellCoords,
-): GetUniformResult[] {
-  const unions: GetUniformResult[] = [];
+): GetUnionResult[] {
+  const unions: GetUnionResult[] = [];
 
   for (let unionIndex = 0; unionIndex < card.unions.length; unionIndex += 1) {
     const union = card.unions[unionIndex];
@@ -492,12 +492,12 @@ export function getUnionsForCard(
 
       if (
         nextZone &&
-        !stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)
+        !stopBarrier.has(`${nextZone.coords.cellId}:${counterSides[side]}`)
       ) {
         const results = checkUnionExtend(
           gameState,
           nextZone,
-          counterSide[side],
+          counterSides[side],
           stopBarrier,
         );
 
@@ -579,11 +579,11 @@ function checkCompletionExtend(
       }
     }
 
-    if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+    if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSides[side]}`)) {
       const results = checkCompletionExtend(
         gameState,
         nextZone,
-        counterSide[side],
+        counterSides[side],
         stopBarrier,
         zones,
       );
@@ -635,11 +635,11 @@ function checkFreeUnionExtend(
     const nextZone = gameState.zones.get(coords.cellId);
 
     if (nextZone) {
-      if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)) {
+      if (!stopBarrier.has(`${nextZone.coords.cellId}:${counterSides[side]}`)) {
         const isCheckSuccess = checkFreeUnionExtend(
           gameState,
           nextZone,
-          counterSide[side],
+          counterSides[side],
           stopBarrier,
         );
 
@@ -784,12 +784,12 @@ function checkUnionExtend(
 
       if (
         nextZone &&
-        !stopBarrier.has(`${nextZone.coords.cellId}:${counterSide[side]}`)
+        !stopBarrier.has(`${nextZone.coords.cellId}:${counterSides[side]}`)
       ) {
         const addResults = checkUnionExtend(
           gameState,
           nextZone,
-          counterSide[side],
+          counterSides[side],
           stopBarrier,
         );
 
@@ -856,7 +856,7 @@ export function getPossibleTurns(gameState: GameState): PossibleTurn[] {
   for (let i = 0; i < cardInfo.maxOrientation; i += 1) {
     for (const cellCoords of cellsCoords) {
       if (canBePlaced(gameState.zones, currentCard, cellCoords)) {
-        for (const { score, peasantPlace } of getTurnScores(
+        for (const { score, peasantPlace } of getScoredTurns(
           gameState,
           currentCard,
           cellCoords,
@@ -965,51 +965,129 @@ type Turn = {
 
 type ZScore = { zoneScore: UnionScore; unionScore: UnionScore };
 
-function getTurnScores(
+function getScoredTurns(
   gameState: GameState,
   card: InGameCard,
   coords: CellCoords,
 ): Turn[] {
   const player = getActivePlayer(gameState);
-  const unions = getUnionsForCard(gameState, card, coords);
+  const unionsResults = getUnionsForCard(gameState, card, coords);
   const aroundZones = getAroundSquareZones(gameState, coords);
 
   const turns: Turn[] = [];
   const scorePerUnion = new Map<UnionIndex, ZScore>();
 
-  for (const union of unions) {
-    const unionScore = sumUnionScore(Array.from(union.scorePerZones.values()));
-    const zoneScore = getZoneUnionScore(card, card.unions[union.unionIndex]);
+  for (const unionResult of unionsResults) {
+    const union = card.unions[unionResult.unionIndex];
 
-    if (union.peasants.length > 0) {
-      const maxPeasantsCount = union.peasants.sort(
-        (a, b) => b.peasantsCount - a.peasantsCount,
-      )[0].peasantsCount;
+    const unionScore = sumUnionScore(
+      Array.from(unionResult.scorePerZones.values()),
+    );
 
-      const winPlayerIndexes = union.peasants
-        .filter(({ peasantsCount }) => peasantsCount === maxPeasantsCount)
-        .map(({ playerIndex }) => playerIndex);
+    const zoneScore = getZoneUnionScore(
+      card,
+      card.unions[unionResult.unionIndex],
+    );
 
-      if (winPlayerIndexes.includes(player.playerIndex)) {
+    const winPlayerIndexes = getWinnerPlayerIndexes(unionResult.peasants);
+
+    const amIWinner = winPlayerIndexes.includes(player.playerIndex);
+
+    let finalUnionScore: ZScore;
+
+    if (unionResult.peasants.length > 0) {
+      if (amIWinner) {
         // TODO: Calculate proper amplifier
-        scorePerUnion.set(union.unionIndex, {
+        finalUnionScore = {
           unionScore,
           zoneScore: amplifyScore(zoneScore, 1 / winPlayerIndexes.length),
-        });
+        };
       } else {
         // TODO: Calculate proper amplifier
-        scorePerUnion.set(union.unionIndex, {
+        finalUnionScore = {
           unionScore,
           zoneScore: amplifyScore(zoneScore, -0.8),
-        });
+        };
       }
     } else {
-      scorePerUnion.set(union.unionIndex, {
+      finalUnionScore = {
         unionScore,
         // TODO: Calculate proper amplifier
         zoneScore: addAbsoluteScore(amplifyScore(zoneScore, -1), 1),
-      });
+      };
     }
+
+    if (
+      amIWinner ||
+      (unionResult.peasants.length === 0 && player.peasantsCount >= 1)
+    ) {
+      for (const unionSide of union.unionSides) {
+        const neighborCoords = getNeighborCoords(coords, unionSide);
+        const neighborZone = gameState.zones.get(neighborCoords.cellId);
+
+        if (!neighborZone) {
+          const checkSides = [Side.UP, Side.RIGHT, Side.DOWN, Side.LEFT].filter(
+            (side) => side !== counterSides[unionSide],
+          );
+
+          for (const checkSide of checkSides) {
+            const checkCoords = getNeighborCoords(neighborCoords, checkSide);
+            const checkZone = gameState.zones.get(checkCoords.cellId);
+
+            if (checkZone) {
+              const results = checkUnionExtend(
+                gameState,
+                checkZone,
+                counterSides[checkSide],
+                new Set(),
+              );
+
+              const winners = getWinnerPlayerIndexes(results.peasants);
+
+              if (!winners.includes(player.playerIndex)) {
+                // TODO: Proper amplifier
+                const potentialScore = amplifyScore(
+                  sumUnionScore(Array.from(results.scorePerZones.values())),
+                  0.7,
+                );
+
+                if (amIWinner) {
+                  finalUnionScore = {
+                    zoneScore: sumUnionScore([
+                      finalUnionScore.zoneScore,
+                      potentialScore,
+                    ]),
+                    unionScore: finalUnionScore.unionScore,
+                  };
+                } else {
+                  finalUnionScore = {
+                    zoneScore: finalUnionScore.zoneScore,
+                    unionScore: sumUnionScore([
+                      finalUnionScore.unionScore,
+                      potentialScore,
+                    ]),
+                  };
+                }
+
+                finalUnionScore = {
+                  zoneScore: amIWinner
+                    ? sumUnionScore([finalUnionScore.zoneScore, potentialScore])
+                    : finalUnionScore.zoneScore,
+                  unionScore: !amIWinner
+                    ? sumUnionScore([
+                        finalUnionScore.unionScore,
+                        potentialScore,
+                      ])
+                    : finalUnionScore.unionScore,
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    scorePerUnion.set(unionResult.unionIndex, finalUnionScore);
   }
 
   const noPeasantScore = sumUnionScore(
@@ -1022,24 +1100,29 @@ function getTurnScores(
   });
 
   if (player.peasantsCount > 0) {
-    for (const union of unions) {
-      if (union.peasants.length === 0) {
+    for (const unionResult of unionsResults) {
+      if (unionResult.peasants.length === 0) {
         const otherScores = Array.from(scorePerUnion.entries())
-          .filter(([unionIndex]) => unionIndex !== union.unionIndex)
+          .filter(([unionIndex]) => unionIndex !== unionResult.unionIndex)
           .map(([, score]) => score.zoneScore);
+
+        const finalUnionScore = scorePerUnion.get(unionResult.unionIndex);
+        if (!finalUnionScore) {
+          throw new Error();
+        }
 
         turns.push({
           score: sumUnionScore([
             ...otherScores,
             addAbsoluteScore(
-              sumUnionScore(Array.from(union.scorePerZones.values())),
+              finalUnionScore.unionScore,
               // -1.5 because of using peasant
               -1.5,
             ),
           ]),
           peasantPlace: {
             type: 'UNION',
-            unionIndex: union.unionIndex,
+            unionIndex: unionResult.unionIndex,
           },
         });
       }
@@ -1072,6 +1155,31 @@ function getTurnScores(
   }
 
   return turns;
+}
+
+function getWinnerPlayerIndexes(
+  playerPeasants: PlayerPeasant[],
+): PlayerIndex[] {
+  if (playerPeasants.length === 0) {
+    return [];
+  }
+
+  const maxPeasantsCount = playerPeasants.sort(
+    (a, b) => b.peasantsCount - a.peasantsCount,
+  )[0].peasantsCount;
+
+  return playerPeasants
+    .filter(({ peasantsCount }) => peasantsCount === maxPeasantsCount)
+    .map(({ playerIndex }) => playerIndex);
+}
+
+function getNeighborCoords(coords: CellCoords, side: Side): CellCoords {
+  const { x, y } = getSideDirection(side);
+
+  return makeCellCoordsByCoords({
+    col: coords.col + x,
+    row: coords.row + y,
+  });
 }
 
 function calculateMonasteryBonus(

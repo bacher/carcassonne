@@ -9,6 +9,7 @@ import {
   InGameCard,
   SideType,
   Peasant,
+  Side,
 } from '../data/types';
 import {
   cellIdToCoords,
@@ -19,6 +20,7 @@ import {
   PossibleTurn,
 } from './logic';
 import { playerColors } from '../data/const';
+import { neverCall } from './helpers';
 
 export const CARD_SIZE = 50;
 
@@ -373,68 +375,68 @@ function drawShield(ctx: CanvasRenderingContext2D, { x, y }: Point): void {
   ctx.fill();
 }
 
-function getSideLine({ x, y }: Point, side: number): [Point, Point] {
+function getSideLine({ x, y }: Point, side: Side): [Point, Point] {
   switch (side) {
-    case 0:
+    case Side.TOP:
       return [
         { x, y },
         { x: x + CARD_SIZE, y },
       ];
-    case 1:
+    case Side.RIGHT:
       return [
         { x: x + CARD_SIZE, y },
         { x: x + CARD_SIZE, y: y + CARD_SIZE },
       ];
-    case 2:
+    case Side.BOTTOM:
       return [
         { x: x + CARD_SIZE, y: y + CARD_SIZE },
         { x, y: y + CARD_SIZE },
       ];
-    case 3:
+    case Side.LEFT:
       return [
         { x, y: y + CARD_SIZE },
         { x, y },
       ];
     default:
-      throw new Error();
+      throw neverCall(side);
   }
 }
 
-function getSideCenter(topLeft: Point, side: number): Point {
+function getSideCenter(topLeft: Point, side: Side): Point {
   const { x, y } = topLeft;
 
   switch (side) {
-    case 0:
+    case Side.TOP:
       return { x: x + CARD_SIZE / 2, y };
-    case 1:
+    case Side.RIGHT:
       return { x: x + CARD_SIZE, y: y + CARD_SIZE / 2 };
-    case 2:
+    case Side.BOTTOM:
       return { x: x + CARD_SIZE / 2, y: y + CARD_SIZE };
-    case 3:
+    case Side.LEFT:
       return { x, y: y + CARD_SIZE / 2 };
     default:
-      throw new Error();
+      throw neverCall(side);
   }
 }
 
 function getSideOffsetCenter(
   topLeft: Point,
-  side: number,
+  side: Side,
   offset = CARD_SIZE / 4,
 ): Point {
   const { x, y } = topLeft;
 
   switch (side) {
-    case 0:
+    case Side.TOP:
       return { x: x + CARD_SIZE / 2, y: y + offset };
-    case 1:
+    case Side.RIGHT:
       return { x: x + CARD_SIZE - offset, y: y + CARD_SIZE / 2 };
-    case 2:
+    case Side.BOTTOM:
       return { x: x + CARD_SIZE / 2, y: y + CARD_SIZE - offset };
-    case 3:
+    case Side.LEFT:
       return { x: x + offset, y: y + CARD_SIZE / 2 };
     default:
-      throw new Error();
+      throw neverCall(side);
   }
 }
 

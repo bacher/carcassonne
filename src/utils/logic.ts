@@ -19,6 +19,7 @@ import {
   Zones,
 } from '../data/types';
 import { cards, cardsById, CardTypeInfo } from '../data/cards';
+import { neverCall, shouldExists } from './helpers';
 
 const counterSides = [2, 3, 0, 1];
 
@@ -241,7 +242,7 @@ function processCompletedObject(
           totalScore += zone.card.isPrimeTown ? 4 : 2;
           break;
         default:
-          throw new Error();
+          neverCall(objectType);
       }
 
       townCellIds.add(cellId);
@@ -277,12 +278,12 @@ function processCompletedMonastery(gameState: GameState, zone: Zone): void {
 }
 
 function getNeighbors(
-  sides: number[],
+  sides: Side[],
   coords: CellCoords,
-): { side: number; coords: CellCoords }[] {
+): { side: Side; coords: CellCoords }[] {
   return sides.map((side) => {
     switch (side) {
-      case 0:
+      case Side.TOP:
         return {
           side,
           coords: makeCellCoordsByCoords({
@@ -290,7 +291,7 @@ function getNeighbors(
             row: coords.row - 1,
           }),
         };
-      case 1:
+      case Side.RIGHT:
         return {
           side,
           coords: makeCellCoordsByCoords({
@@ -298,7 +299,7 @@ function getNeighbors(
             row: coords.row,
           }),
         };
-      case 2:
+      case Side.BOTTOM:
         return {
           side,
           coords: makeCellCoordsByCoords({
@@ -306,7 +307,7 @@ function getNeighbors(
             row: coords.row + 1,
           }),
         };
-      case 3:
+      case Side.LEFT:
         return {
           side,
           coords: makeCellCoordsByCoords({
@@ -315,7 +316,7 @@ function getNeighbors(
           }),
         };
       default:
-        throw new Error();
+        throw neverCall(side);
     }
   });
 }
@@ -541,13 +542,9 @@ function checkCompletionExtend(
   allowIncomplete?: boolean,
 ): boolean {
   const sides = [];
-  const union = zone.card.unions.find((union) =>
-    union.unionSides.includes(comeFrom),
+  const union = shouldExists(
+    zone.card.unions.find((union) => union.unionSides.includes(comeFrom)),
   );
-
-  if (!union) {
-    throw new Error();
-  }
 
   for (const side of union.unionSides) {
     if (side !== comeFrom) {
@@ -606,13 +603,9 @@ function checkFreeUnionExtend(
   stopBarrier: Set<string>,
 ): boolean {
   const sides = [];
-  const union = zone.card.unions.find((union) =>
-    union.unionSides.includes(comeFrom),
+  const union = shouldExists(
+    zone.card.unions.find((union) => union.unionSides.includes(comeFrom)),
   );
-
-  if (!union) {
-    throw new Error();
-  }
 
   if (getZoneUnionOwnerPlayerIndex(zone, union) !== undefined) {
     return false;
@@ -732,7 +725,7 @@ function getZoneUnionScore(card: InGameCard, union: Union): UnionScore {
         incomplete: 1,
       };
     default:
-      throw new Error();
+      throw neverCall(union.unionSideType);
   }
 }
 
@@ -743,13 +736,9 @@ function checkUnionExtend(
   stopBarrier: Set<string>,
 ): CheckUnionResults {
   const sides = [];
-  const union = zone.card.unions.find((union) =>
-    union.unionSides.includes(comeFrom),
+  const union = shouldExists(
+    zone.card.unions.find((union) => union.unionSides.includes(comeFrom)),
   );
-
-  if (!union) {
-    throw new Error();
-  }
 
   const results: CheckUnionResults = {
     scorePerZones: new Map([
@@ -910,13 +899,7 @@ function getRandomItem<T>(items: T[]): T {
 }
 
 export function getActivePlayer(gameState: GameState): Player {
-  const player = gameState.players[gameState.activePlayerIndex];
-
-  if (!player) {
-    throw new Error();
-  }
-
-  return player;
+  return shouldExists(gameState.players[gameState.activePlayerIndex]);
 }
 
 function makeZeroScore(): UnionScore {
@@ -1026,7 +1009,7 @@ function getScoredTurns(
         const neighborZone = gameState.zones.get(neighborCoords.cellId);
 
         if (!neighborZone) {
-          const checkSides = [Side.UP, Side.RIGHT, Side.DOWN, Side.LEFT].filter(
+          const checkSides = [Side.TOP, Side.RIGHT, Side.BOTTOM, Side.LEFT].filter(
             (side) => side !== counterSides[unionSide],
           );
 
@@ -1035,51 +1018,64 @@ function getScoredTurns(
             const checkZone = gameState.zones.get(checkCoords.cellId);
 
             if (checkZone) {
-              const results = checkUnionExtend(
-                gameState,
-                checkZone,
-                counterSides[checkSide],
-                new Set(),
+              const fromSide = counterSides[checkSide];
+              const alignedUnion = checkZone.card.unions.find((union) =>
+                union.unionSides.includes(fromSide),
               );
 
-              const winners = getWinnerPlayerIndexes(results.peasants);
-
-              if (!winners.includes(player.playerIndex)) {
-                // TODO: Proper amplifier
-                const potentialScore = amplifyScore(
-                  sumUnionScore(Array.from(results.scorePerZones.values())),
-                  0.7,
+              if (
+                alignedUnion &&
+                alignedUnion.unionSideType === union.unionSideType
+              ) {
+                const results = checkUnionExtend(
+                  gameState,
+                  checkZone,
+                  fromSide,
+                  new Set(),
                 );
 
-                if (amIWinner) {
-                  finalUnionScore = {
-                    zoneScore: sumUnionScore([
-                      finalUnionScore.zoneScore,
-                      potentialScore,
-                    ]),
-                    unionScore: finalUnionScore.unionScore,
-                  };
-                } else {
-                  finalUnionScore = {
-                    zoneScore: finalUnionScore.zoneScore,
-                    unionScore: sumUnionScore([
-                      finalUnionScore.unionScore,
-                      potentialScore,
-                    ]),
-                  };
-                }
+                const winners = getWinnerPlayerIndexes(results.peasants);
 
-                finalUnionScore = {
-                  zoneScore: amIWinner
-                    ? sumUnionScore([finalUnionScore.zoneScore, potentialScore])
-                    : finalUnionScore.zoneScore,
-                  unionScore: !amIWinner
-                    ? sumUnionScore([
+                if (!winners.includes(player.playerIndex)) {
+                  // TODO: Proper amplifier
+                  const potentialScore = amplifyScore(
+                    sumUnionScore(Array.from(results.scorePerZones.values())),
+                    0.7,
+                  );
+
+                  if (amIWinner) {
+                    finalUnionScore = {
+                      zoneScore: sumUnionScore([
+                        finalUnionScore.zoneScore,
+                        potentialScore,
+                      ]),
+                      unionScore: finalUnionScore.unionScore,
+                    };
+                  } else {
+                    finalUnionScore = {
+                      zoneScore: finalUnionScore.zoneScore,
+                      unionScore: sumUnionScore([
                         finalUnionScore.unionScore,
                         potentialScore,
-                      ])
-                    : finalUnionScore.unionScore,
-                };
+                      ]),
+                    };
+                  }
+
+                  finalUnionScore = {
+                    zoneScore: amIWinner
+                      ? sumUnionScore([
+                          finalUnionScore.zoneScore,
+                          potentialScore,
+                        ])
+                      : finalUnionScore.zoneScore,
+                    unionScore: !amIWinner
+                      ? sumUnionScore([
+                          finalUnionScore.unionScore,
+                          potentialScore,
+                        ])
+                      : finalUnionScore.unionScore,
+                  };
+                }
               }
             }
           }
@@ -1106,10 +1102,9 @@ function getScoredTurns(
           .filter(([unionIndex]) => unionIndex !== unionResult.unionIndex)
           .map(([, score]) => score.zoneScore);
 
-        const finalUnionScore = scorePerUnion.get(unionResult.unionIndex);
-        if (!finalUnionScore) {
-          throw new Error();
-        }
+        const finalUnionScore = shouldExists(
+          scorePerUnion.get(unionResult.unionIndex),
+        );
 
         turns.push({
           score: sumUnionScore([
@@ -1257,11 +1252,11 @@ export const enum Quadrant {
 
 export function getSideDirection(side: Side): Point {
   switch (side) {
-    case Side.UP:
+    case Side.TOP:
       return { x: 0, y: -1 };
     case Side.RIGHT:
       return { x: 1, y: 0 };
-    case Side.DOWN:
+    case Side.BOTTOM:
       return { x: 0, y: 1 };
     case Side.LEFT:
       return { x: -1, y: 0 };

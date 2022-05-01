@@ -5,6 +5,7 @@ import type { PeasantPlace } from '../../data/types';
 import type { PossibleTurn } from '../../utils/logic';
 
 import styles from './PossibleTurns.module.css';
+import { neverCall } from '../../utils/helpers';
 
 type Props = {
   possibleTurns: PossibleTurn[];
@@ -33,7 +34,7 @@ export function PossibleTurns({
       case 'UNION':
         return <div>Peasant at union {peasantPlace.unionIndex}</div>;
       default:
-        throw new Error();
+        neverCall(peasantPlace);
     }
   }
 

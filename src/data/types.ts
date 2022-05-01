@@ -14,9 +14,9 @@ export const enum SideType {
 }
 
 export const enum Side {
-  UP,
+  TOP,
   RIGHT,
-  DOWN,
+  BOTTOM,
   LEFT,
 }
 

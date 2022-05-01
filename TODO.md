@@ -1,0 +1,3 @@
+# TODOs
+
+- [ ] Add autoplay mode

@@ -111,7 +111,6 @@ type Size = {
 };
 
 export function GameBoard({ gameSetup }: Props) {
-  const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mouseState, setMouseState] = useState<MouseState>(MouseState.HOVERING);
   const [isShowCardPool, setShowCardPool] = useState(false);
@@ -128,11 +127,10 @@ export function GameBoard({ gameSetup }: Props) {
   });
 
   function syncViewportSize() {
-    const canvasWrapper = shouldExists(canvasWrapperRef.current);
     const canvas = shouldExists(canvasRef.current);
 
-    const width = Math.floor(canvasWrapper.clientWidth);
-    const height = Math.floor(canvasWrapper.clientHeight);
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
 
     if (
       viewportSize.current.width !== width ||
@@ -449,7 +447,7 @@ export function GameBoard({ gameSetup }: Props) {
 
   return (
     <div className={styles.root}>
-      <div className={styles.canvasWrapper} ref={canvasWrapperRef}>
+      <div className={styles.canvasWrapper}>
         <canvas
           ref={canvasRef}
           className={styles.canvas}

@@ -7,6 +7,7 @@ export function shouldExists<T>(value: T | undefined | null): T {
   return value;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function neverCall(value: never): unknown {
   throw new Error('Never call');
 }

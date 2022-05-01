@@ -1009,9 +1009,12 @@ function getScoredTurns(
         const neighborZone = gameState.zones.get(neighborCoords.cellId);
 
         if (!neighborZone) {
-          const checkSides = [Side.TOP, Side.RIGHT, Side.BOTTOM, Side.LEFT].filter(
-            (side) => side !== counterSides[unionSide],
-          );
+          const checkSides = [
+            Side.TOP,
+            Side.RIGHT,
+            Side.BOTTOM,
+            Side.LEFT,
+          ].filter((side) => side !== counterSides[unionSide]);
 
           for (const checkSide of checkSides) {
             const checkCoords = getNeighborCoords(neighborCoords, checkSide);

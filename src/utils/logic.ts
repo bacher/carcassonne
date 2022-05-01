@@ -1,4 +1,4 @@
-import { shuffle } from 'lodash';
+import { last, shuffle } from 'lodash';
 
 import {
   Building,
@@ -61,6 +61,10 @@ export function rotateCard(card: InGameCard): void {
     unionSideType,
     unionSides: unionSides.map((side) => (side + 1) % 4).sort((a, b) => a - b),
   }));
+}
+
+export function cloneCard(card: InGameCard): InGameCard {
+  return { ...card };
 }
 
 function rotateCardImmutable(card: InGameCard): InGameCard {
@@ -833,22 +837,22 @@ export type PossibleTurn = {
 };
 
 export function getPossibleTurns(gameState: GameState): PossibleTurn[] {
-  let currentCard = gameState.cardPool[gameState.cardPool.length - 1];
+  const nextCard = last(gameState.cardPool);
 
-  if (!currentCard) {
+  if (!nextCard) {
     window.alert('Empty pool');
     throw new Error();
   }
 
-  const cardInfo = cardsById[currentCard.cardTypeId];
-
+  const cardInfo = cardsById[nextCard.cardTypeId];
   const cellsCoords = Array.from(gameState.potentialZones.values()).map(
     cellIdToCoords,
   );
-
   const possibleTurns: PossibleTurn[] = [];
 
-  for (let i = 0; i < cardInfo.maxOrientation; i += 1) {
+  let currentCard = cloneCard(nextCard);
+
+  for (let i = 0; i < cardInfo.orientationsCount; i += 1) {
     for (const cellCoords of cellsCoords) {
       if (canBePlaced(gameState.zones, currentCard, cellCoords)) {
         for (const { score, peasantPlace } of getScoredTurns(

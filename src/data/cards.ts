@@ -7,7 +7,7 @@ type CardTypeInfoPartial = CardBase & {
 };
 
 export type CardTypeInfo = CardTypeInfoPartial & {
-  maxOrientation: number;
+  orientationsCount: number;
   unions: Union[];
 };
 
@@ -168,7 +168,7 @@ const cardsPartial: CardTypeInfoPartial[] = [
 
 export const cards: CardTypeInfo[] = cardsPartial.map((card) => ({
   ...card,
-  maxOrientation: calMaxOrientation(card),
+  orientationsCount: calMaxOrientation(card),
   unions: calcUnions(card),
 }));
 

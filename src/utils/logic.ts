@@ -23,6 +23,21 @@ import { neverCall, shouldExists } from './helpers';
 
 const counterSides = [2, 3, 0, 1];
 
+const scores: Record<'ROAD' | 'TOWN' | 'PRIME_TOWN', UnionScore> = {
+  ROAD: {
+    complete: 1,
+    incomplete: 1,
+  },
+  TOWN: {
+    complete: 2,
+    incomplete: 1,
+  },
+  PRIME_TOWN: {
+    complete: 4,
+    incomplete: 2,
+  },
+};
+
 export function instantiateCard(card: CardTypeInfo): InGameCard {
   return {
     cardTypeId: card.id,
@@ -710,20 +725,11 @@ function getZoneUnionScore(card: InGameCard, union: Union): UnionScore {
   switch (union.unionSideType) {
     case SideType.TOWN:
       if (card.isPrimeTown) {
-        return {
-          complete: 4,
-          incomplete: 2,
-        };
+        return scores.PRIME_TOWN;
       }
-      return {
-        complete: 2,
-        incomplete: 1,
-      };
+      return scores.TOWN;
     case SideType.ROAD:
-      return {
-        complete: 1,
-        incomplete: 1,
-      };
+      return scores.ROAD;
     default:
       throw neverCall(union.unionSideType);
   }
@@ -1041,16 +1047,29 @@ function getScoredTurns(
 
                 if (!winners.includes(player.playerIndex)) {
                   // TODO: Proper amplifier
-                  const potentialScore = amplifyScore(
-                    sumUnionScore(Array.from(results.scorePerZones.values())),
-                    0.7,
+
+                  const targetScore = sumUnionScore(
+                    Array.from(results.scorePerZones.values()),
                   );
+                  const alreadyScore = sumUnionScore(
+                    Array.from(unionResult.scorePerZones.values()),
+                  );
+
+                  const attachScore = sumUnionScore([
+                    sumUnionScore([
+                      amplifyScore(targetScore, 0.8),
+                      union.unionSideType === SideType.ROAD
+                        ? scores.ROAD
+                        : scores.TOWN,
+                    ]),
+                    amplifyScore(alreadyScore, -0.3),
+                  ]);
 
                   if (amIWinner) {
                     finalUnionScore = {
                       zoneScore: sumUnionScore([
                         finalUnionScore.zoneScore,
-                        potentialScore,
+                        attachScore,
                       ]),
                       unionScore: finalUnionScore.unionScore,
                     };
@@ -1059,25 +1078,10 @@ function getScoredTurns(
                       zoneScore: finalUnionScore.zoneScore,
                       unionScore: sumUnionScore([
                         finalUnionScore.unionScore,
-                        potentialScore,
+                        attachScore,
                       ]),
                     };
                   }
-
-                  finalUnionScore = {
-                    zoneScore: amIWinner
-                      ? sumUnionScore([
-                          finalUnionScore.zoneScore,
-                          potentialScore,
-                        ])
-                      : finalUnionScore.zoneScore,
-                    unionScore: !amIWinner
-                      ? sumUnionScore([
-                          finalUnionScore.unionScore,
-                          potentialScore,
-                        ])
-                      : finalUnionScore.unionScore,
-                  };
                 }
               }
             }

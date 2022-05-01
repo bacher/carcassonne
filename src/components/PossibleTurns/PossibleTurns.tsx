@@ -11,15 +11,21 @@ type Props = {
   possibleTurns: PossibleTurn[];
   onTurnHover: (turn: PossibleTurn | undefined) => void;
   onTurnApply: (turn: PossibleTurn) => void;
+  onHideClick: () => void;
 };
 
 export function PossibleTurns({
   possibleTurns,
   onTurnHover,
   onTurnApply,
+  onHideClick,
 }: Props) {
   const maxAvgScore = useMemo(() => {
-    const { score } = possibleTurns[0];
+    const first = possibleTurns[0];
+    if (!first) {
+      return 0;
+    }
+    const { score } = first;
     return Math.round(((score.complete + score.incomplete) / 2) * 100) / 100;
   }, [possibleTurns]);
 
@@ -40,7 +46,18 @@ export function PossibleTurns({
 
   return (
     <div className={styles.root}>
-      <div className={styles.title}>Possible turns:</div>
+      <div className={styles.titleBlock}>
+        <span className={styles.title}>Possible turns: </span>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            onHideClick();
+          }}
+        >
+          x
+        </button>
+      </div>
       <div className={styles.list}>
         {possibleTurns.map((turn, index) => {
           const { score } = turn;

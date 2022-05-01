@@ -5,7 +5,9 @@
 
 .column {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
+  min-width: 100px;
   padding: 8px;
 }
 
@@ -19,11 +21,16 @@
 
 .canvasWrapper {
   position: relative;
+  flex-grow: 1;
+  min-width: 100px;
+  min-height: 100px;
 }
 
 .canvas {
-  width: 800px;
-  height: 600px;
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
 }
 
 .buttons {

@@ -4,8 +4,13 @@
   height: 100%;
 }
 
-.title {
+.titleBlock {
+  display: flex;
+  justify-content: space-between;
   margin-bottom: 6px;
+}
+
+.title {
 }
 
 .list {

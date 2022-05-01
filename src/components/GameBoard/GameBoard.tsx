@@ -39,9 +39,9 @@ import { PutPeasant } from '../PutPeasant';
 import { GameStats } from '../GameStats';
 import { PossibleTurns } from '../PossibleTurns';
 import { loadData, saveData } from '../../utils/localStorage';
+import { shouldExists } from '../../utils/helpers';
+import { useWindowEvent } from '../../hooks/useWindowEvent';
 
-const WIDTH = 800;
-const HEIGHT = 600;
 const SCHEMA_REV = 1;
 const SHOW_ALL_CARDS = false;
 const ENABLE_LOADING = false;
@@ -105,7 +105,13 @@ type GameStateSnapshot = {
   potentialZones: number[];
 };
 
+type Size = {
+  width: number;
+  height: number;
+};
+
 export function GameBoard({ gameSetup }: Props) {
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mouseState, setMouseState] = useState<MouseState>(MouseState.HOVERING);
   const [isShowCardPool, setShowCardPool] = useState(false);
@@ -116,6 +122,30 @@ export function GameBoard({ gameSetup }: Props) {
   const [isMouseDown, setMouseDown] = useState(false);
   const [isNextCardHoverRef, setNextCardHover] = useStateRef(false);
   const effects = useMemo<Effects>(() => ({ hoverCellId: undefined }), []);
+  const [viewportSize, setViewportSize] = useStateRef<Size>({
+    width: 0,
+    height: 0,
+  });
+
+  function syncViewportSize() {
+    const canvasWrapper = shouldExists(canvasWrapperRef.current);
+    const canvas = shouldExists(canvasRef.current);
+
+    const width = Math.floor(canvasWrapper.clientWidth);
+    const height = Math.floor(canvasWrapper.clientHeight);
+
+    if (
+      viewportSize.current.width !== width ||
+      viewportSize.current.height !== height
+    ) {
+      setViewportSize({ width, height });
+
+      canvas.width = width;
+      canvas.height = height;
+      renderBoard();
+    }
+  }
+
   const gameState = useMemo<GameState>(() => {
     if (ENABLE_LOADING) {
       const state = loadGameState();
@@ -172,9 +202,13 @@ export function GameBoard({ gameSetup }: Props) {
   >();
 
   const [possibleTurns, setPossibleTurns] = useState<PossibleTurn[]>([]);
+  const [isShowPossibleTurns, setIsShowPossibleTurns] = useState(false);
   const [activeTurn, setActiveTurn] = useStateRef<PossibleTurn | undefined>(
     undefined,
   );
+
+  useEffect(syncViewportSize, [isShowPossibleTurns, isShowCardPool]);
+  useWindowEvent('resize', syncViewportSize);
 
   useEffect(actualizeHoverCell, [isNextCardHoverRef.current]);
 
@@ -184,11 +218,17 @@ export function GameBoard({ gameSetup }: Props) {
   const nextCard = last(gameState.cardPool);
 
   function renderBoard() {
+    const canvas = canvasRef.current;
+
+    if (!canvas || viewportSize.current.width === 0) {
+      return;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ctx = canvasRef.current!.getContext('2d')!;
+    const ctx = canvas!.getContext('2d')!;
 
     render(ctx, gameState, {
-      size: { width: WIDTH, height: HEIGHT },
+      size: viewportSize.current,
       viewport: viewport.pos,
       hoverCellId: effects.hoverCellId,
       activeTurn: activeTurn.current ?? undefined,
@@ -246,6 +286,8 @@ export function GameBoard({ gameSetup }: Props) {
   }
 
   function actualizeHoverCell() {
+    const { width, height } = viewportSize.current;
+
     const { x, y } = mousePos;
 
     let hoverCell: number | undefined;
@@ -253,12 +295,12 @@ export function GameBoard({ gameSetup }: Props) {
     if (
       !isNextCardHoverRef.current &&
       x >= 0 &&
-      x < WIDTH &&
+      x < width &&
       y >= 0 &&
-      y < HEIGHT
+      y < height
     ) {
       hoverCell = getCellByPoint(
-        { size: { width: WIDTH, height: HEIGHT }, viewport: viewport.pos },
+        { size: { width, height }, viewport: viewport.pos },
         { x, y },
       );
     }
@@ -407,12 +449,12 @@ export function GameBoard({ gameSetup }: Props) {
 
   return (
     <div className={styles.root}>
-      <div className={styles.canvasWrapper}>
+      <div className={styles.canvasWrapper} ref={canvasWrapperRef}>
         <canvas
           ref={canvasRef}
           className={styles.canvas}
-          width={WIDTH}
-          height={HEIGHT}
+          width={0}
+          height={0}
           onMouseDown={(event) => {
             if (event.button !== 0) {
               return;
@@ -462,6 +504,7 @@ export function GameBoard({ gameSetup }: Props) {
             const turns = getPossibleTurns(gameState);
 
             setPossibleTurns(turns);
+            setIsShowPossibleTurns(true);
 
             if (turns.length === 0) {
               window.alert('No turns available');
@@ -551,7 +594,7 @@ export function GameBoard({ gameSetup }: Props) {
           />
         </div>
       )}
-      {possibleTurns.length > 0 && (
+      {isShowPossibleTurns && (
         <div className={cn(styles.column, styles.wide)}>
           <PossibleTurns
             possibleTurns={possibleTurns}
@@ -565,6 +608,9 @@ export function GameBoard({ gameSetup }: Props) {
             onTurnHover={(turn) => {
               setActiveTurn(turn);
               renderBoard();
+            }}
+            onHideClick={() => {
+              setIsShowPossibleTurns(false);
             }}
           />
         </div>

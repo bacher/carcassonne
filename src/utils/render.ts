@@ -59,8 +59,8 @@ export function render(
   ctx.save();
 
   const offset = {
-    x: size.width / 2 + viewport.x,
-    y: size.height / 2 + viewport.y,
+    x: Math.floor(size.width / 2) + viewport.x,
+    y: Math.floor(size.height / 2) + viewport.y,
   };
 
   drawGrid(ctx, { size, offset });
@@ -568,8 +568,8 @@ export function getCellByPoint(
   { size, viewport }: { size: Size; viewport: Point },
   { x, y }: Point,
 ): number {
-  const innerX = x - viewport.x - size.width / 2;
-  const innerY = y - viewport.y - size.height / 2;
+  const innerX = x - viewport.x - Math.floor(size.width / 2);
+  const innerY = y - viewport.y - Math.floor(size.height / 2);
 
   const col = Math.floor(innerX / CELL_SIZE);
   const row = Math.floor(innerY / CELL_SIZE);

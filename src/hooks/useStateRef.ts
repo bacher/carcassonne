@@ -1,8 +1,10 @@
-import { RefObject, useRef } from 'react';
+import { useRef } from 'react';
 
 import { useForceUpdate } from './useForceUpdate';
 
-export function useStateRef<T>(value: T): [RefObject<T>, (v: T) => void] {
+export function useStateRef<T>(
+  value: T,
+): [{ readonly current: T }, (v: T) => void] {
   const currentValue = useRef<T>(value);
   const update = useForceUpdate();
 

@@ -121,7 +121,7 @@ export function CardPool({ cardPool, onChoose }: Props) {
               });
             }}
           />
-          Monastery
+          M
         </label>
       </div>
       <div className={styles.cards}>

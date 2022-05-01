@@ -1,5 +1,6 @@
 .root {
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
 .filters {
@@ -15,6 +16,7 @@
 .cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  width: 212px;
   gap: 4px;
 }
 

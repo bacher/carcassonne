@@ -490,7 +490,14 @@ export function getFreeUnionsForCard(
   return freeUnions;
 }
 
-type GetUnionResult = CheckUnionResults & {
+type CheckUnionFinalResults = CheckUnionResults & {
+  sides: {
+    side: Side;
+    score: CheckUnionResults;
+  }[];
+};
+
+type GetUnionResult = CheckUnionFinalResults & {
   unionIndex: UnionIndex;
 };
 
@@ -510,9 +517,10 @@ export function getUnionsForCard(
       unionSides.map((side) => `${coords.cellId}:${side}`),
     );
 
-    const unionResults: CheckUnionResults = {
+    const unionResults: CheckUnionFinalResults = {
       scorePerZones: new Map([[coords.cellId, getZoneUnionScore(card, union)]]),
       peasants: [],
+      sides: [],
     };
 
     for (const { side, coords } of neighbors) {
@@ -529,7 +537,7 @@ export function getUnionsForCard(
           stopBarrier,
         );
 
-        mergeCheckUnionResults(unionResults, results);
+        mergeCheckUnionFinalResults(unionResults, results, side);
       }
     }
 
@@ -726,6 +734,19 @@ function mergeCheckUnionResults(
 ): void {
   mergeZoneScore(results.scorePerZones, addResults.scorePerZones);
   mergePlayerPeasants(results.peasants, addResults.peasants);
+}
+
+function mergeCheckUnionFinalResults(
+  results: CheckUnionFinalResults,
+  addResults: CheckUnionResults,
+  side: Side,
+): void {
+  mergeCheckUnionResults(results, addResults);
+
+  results.sides.push({
+    side,
+    score: addResults,
+  });
 }
 
 export type UnionScore = {
@@ -1005,10 +1026,33 @@ function getScoredTurns(
 
     if (unionResult.peasants.length > 0) {
       if (amIWinner) {
+        let myCurrentScore = makeZeroScore();
+
+        for (const sideResults of unionResult.sides) {
+          const winPlayerIndexes = getWinnerPlayerIndexes(
+            sideResults.score.peasants,
+          );
+
+          if (winPlayerIndexes.includes(player.playerIndex)) {
+            const myScore = sumUnionScore(
+              Array.from(sideResults.score.scorePerZones.values()),
+            );
+
+            if (myScore.incomplete > myCurrentScore.incomplete) {
+              myCurrentScore = myScore;
+            }
+          }
+        }
+
+        const additionalScore = sumUnionScore([
+          unionScore,
+          amplifyScore(myCurrentScore, -1),
+        ]);
+
         // TODO: Calculate proper amplifier
         finalUnionScore = {
           unionScore,
-          zoneScore: amplifyScore(zoneScore, 1 / winPlayerIndexes.length),
+          zoneScore: amplifyScore(additionalScore, 1 / winPlayerIndexes.length),
         };
       } else {
         // TODO: Calculate proper amplifier

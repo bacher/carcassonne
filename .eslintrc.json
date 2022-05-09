@@ -29,9 +29,9 @@
     "consistent-return": "off",
     "no-continue": "off",
     "no-param-reassign": "off",
+    "no-debugger": "warn",
     "no-restricted-syntax": [
       "error",
-      "DebuggerStatement",
       "ForInStatement",
       "LabeledStatement",
       "WithStatement"

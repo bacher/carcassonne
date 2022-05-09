@@ -414,7 +414,7 @@ export function GameBoard({ gameSetup }: Props) {
     }
 
     if (
-      setMouseDown ||
+      isMouseDown ||
       mouseState === MouseState.DRAGGING ||
       mouseState === MouseState.HOVERING
     ) {

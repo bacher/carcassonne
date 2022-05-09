@@ -8,7 +8,7 @@ import styles from './PlayersList.module.css';
 type Props = {
   players: Player[];
   activePlayerIndex: number;
-  onDoTurnClick: (playerIndex: number) => void;
+  onDoTurnClick: () => void;
   onGetPossibleTurnsClick: (playerIndex: number) => void;
 };
 
@@ -44,7 +44,7 @@ export function PlayersList({
               disabled={i !== activePlayerIndex}
               onClick={(event) => {
                 event.preventDefault();
-                onDoTurnClick(activePlayerIndex);
+                onDoTurnClick();
               }}
             >
               Make Turn

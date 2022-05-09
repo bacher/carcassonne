@@ -900,9 +900,9 @@ export function fitNextCard(gameState: GameState): PossibleTurn | undefined {
   }
 
   const maxScore = possibleTurns[0].score;
-  possibleTurns.filter((turn) => turn.score === maxScore);
+  const bestTurns = possibleTurns.filter((turn) => turn.score === maxScore);
 
-  return getRandomItem(possibleTurns);
+  return getRandomItem(bestTurns);
 }
 
 function getRandomItem<T>(items: T[]): T {
@@ -924,6 +924,13 @@ function makeZeroScore(): UnionScore {
   return {
     complete: 0,
     incomplete: 0,
+  };
+}
+
+function makeAbsoluteScore(value: number): UnionScore {
+  return {
+    complete: value,
+    incomplete: value,
   };
 }
 
@@ -1068,13 +1075,12 @@ function getScoredTurns(
                   );
 
                   const attachScore = sumUnionScore([
-                    sumUnionScore([
-                      amplifyScore(targetScore, 0.8),
-                      union.unionSideType === SideType.ROAD
-                        ? scores.ROAD
-                        : scores.TOWN,
-                    ]),
+                    amplifyScore(targetScore, 0.8),
+                    union.unionSideType === SideType.ROAD
+                      ? scores.ROAD
+                      : scores.TOWN,
                     amplifyScore(alreadyScore, -0.3),
+                    makeAbsoluteScore(0.5),
                   ]);
 
                   if (amIWinner) {
@@ -1091,6 +1097,7 @@ function getScoredTurns(
                       unionScore: sumUnionScore([
                         finalUnionScore.unionScore,
                         attachScore,
+                        makeAbsoluteScore(-1.5),
                       ]),
                     };
                   }

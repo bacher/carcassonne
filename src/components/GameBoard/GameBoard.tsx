@@ -319,105 +319,110 @@ export function GameBoard({ gameSetup }: Props) {
   }
 
   useEffect(() => {
-    function onMouseMove(event: MouseEvent) {
-      if (event.button !== 0) {
-        return;
-      }
-
-      mousePos.x = event.pageX;
-      mousePos.y = event.pageY;
-
-      if (isMouseDown && mouseState !== MouseState.DRAGGING) {
-        if (
-          Math.abs(event.screenX - dragStartPos.x) +
-            Math.abs(event.screenY - dragStartPos.y) >
-          3
-        ) {
-          setMouseState(MouseState.DRAGGING);
+    if (
+      !putPeasantState &&
+      (isMouseDown ||
+        mouseState === MouseState.DRAGGING ||
+        mouseState === MouseState.HOVERING)
+    ) {
+      const onMouseMove = (event: MouseEvent) => {
+        if (event.button !== 0) {
+          return;
         }
-      }
 
-      if (mouseState === MouseState.DRAGGING) {
-        applyDragMove(event);
-        renderBoard();
-      } else {
-        actualizeHoverCell();
-      }
-    }
+        mousePos.x = event.pageX;
+        mousePos.y = event.pageY;
 
-    function onMouseUp(event: MouseEvent) {
-      mousePos.x = event.pageX;
-      mousePos.y = event.pageY;
-
-      setMouseDown(false);
-
-      if (mouseState === MouseState.DRAGGING) {
-        applyDragMove(event);
-        setMouseState(MouseState.HOVERING);
-        renderBoard();
-      } else {
-        actualizeHoverCell();
-
-        const card = gameState.cardPool[gameState.cardPool.length - 1];
-
-        if (effects.hoverCellId && card) {
-          const cellId = effects.hoverCellId;
-
-          if (gameState.potentialZones.has(effects.hoverCellId)) {
-            const coords = cellIdToCoords(cellId);
-
-            if (!canBePlaced(gameState.zones, card, coords)) {
-              window.alert("Can't be placed here");
-              return;
-            }
-
-            const player = getActivePlayer(gameState);
-
-            const completePutting = (
-              peasantPlace: PeasantPlace | undefined,
-            ) => {
-              putCardInGame(gameState, {
-                card,
-                coords,
-                peasantPlace,
-              });
-              setPossibleTurns([]);
-              setActiveTurn(undefined);
-
-              forceUpdate();
-              renderBoard();
-            };
-
-            if (!player.peasantsCount) {
-              completePutting(undefined);
-              return;
-            }
-
-            const allowedUnions = getFreeUnionsForCard(gameState, card, coords);
-
-            setPutPeasantState({
-              card,
-              allowedUnions,
-              resolveCallback: (results) => {
-                setPutPeasantState(undefined);
-
-                if (results.type === 'CANCEL') {
-                  return;
-                }
-
-                completePutting(results.peasantPlace);
-              },
-            });
+        if (isMouseDown && mouseState !== MouseState.DRAGGING) {
+          if (
+            Math.abs(event.screenX - dragStartPos.x) +
+              Math.abs(event.screenY - dragStartPos.y) >
+            3
+          ) {
+            setMouseState(MouseState.DRAGGING);
           }
         }
-      }
-    }
 
-    if (
-      isMouseDown ||
-      mouseState === MouseState.DRAGGING ||
-      mouseState === MouseState.HOVERING
-    ) {
+        if (mouseState === MouseState.DRAGGING) {
+          applyDragMove(event);
+          renderBoard();
+        } else {
+          actualizeHoverCell();
+        }
+      };
+
+      const onMouseUp = (event: MouseEvent) => {
+        mousePos.x = event.pageX;
+        mousePos.y = event.pageY;
+
+        setMouseDown(false);
+
+        if (mouseState === MouseState.DRAGGING) {
+          applyDragMove(event);
+          setMouseState(MouseState.HOVERING);
+          renderBoard();
+        } else {
+          actualizeHoverCell();
+
+          const card = gameState.cardPool[gameState.cardPool.length - 1];
+
+          if (effects.hoverCellId && card) {
+            const cellId = effects.hoverCellId;
+
+            if (gameState.potentialZones.has(effects.hoverCellId)) {
+              const coords = cellIdToCoords(cellId);
+
+              if (!canBePlaced(gameState.zones, card, coords)) {
+                window.alert("Can't be placed here");
+                return;
+              }
+
+              const player = getActivePlayer(gameState);
+
+              const completePutting = (
+                peasantPlace: PeasantPlace | undefined,
+              ) => {
+                putCardInGame(gameState, {
+                  card,
+                  coords,
+                  peasantPlace,
+                });
+                setPossibleTurns([]);
+                setActiveTurn(undefined);
+
+                forceUpdate();
+                renderBoard();
+              };
+
+              if (!player.peasantsCount) {
+                completePutting(undefined);
+                return;
+              }
+
+              const allowedUnions = getFreeUnionsForCard(
+                gameState,
+                card,
+                coords,
+              );
+
+              setPutPeasantState({
+                card,
+                allowedUnions,
+                resolveCallback: (results) => {
+                  setPutPeasantState(undefined);
+
+                  if (results.type === 'CANCEL') {
+                    return;
+                  }
+
+                  completePutting(results.peasantPlace);
+                },
+              });
+            }
+          }
+        }
+      };
+
       window.addEventListener('mousemove', onMouseMove, { passive: true });
       window.addEventListener('mouseup', onMouseUp, { passive: true });
 
@@ -426,7 +431,7 @@ export function GameBoard({ gameSetup }: Props) {
         window.removeEventListener('mouseup', onMouseUp);
       };
     }
-  }, [mouseState, isMouseDown]);
+  }, [mouseState, isMouseDown, Boolean(putPeasantState)]);
 
   function loadGame(gameName?: string) {
     const state = loadGameState(gameName);

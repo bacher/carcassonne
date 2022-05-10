@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/carcassonne/static/css/main.0ce22f84.css",
-    "main.js": "/carcassonne/static/js/main.9543abcd.js",
+    "main.js": "/carcassonne/static/js/main.b1a091a7.js",
     "index.html": "/carcassonne/index.html",
     "main.0ce22f84.css.map": "/carcassonne/static/css/main.0ce22f84.css.map",
-    "main.9543abcd.js.map": "/carcassonne/static/js/main.9543abcd.js.map"
+    "main.b1a091a7.js.map": "/carcassonne/static/js/main.b1a091a7.js.map"
   },
   "entrypoints": [
     "static/css/main.0ce22f84.css",
-    "static/js/main.9543abcd.js"
+    "static/js/main.b1a091a7.js"
   ]
 }

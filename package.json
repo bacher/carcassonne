@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "start": "react-scripts start",
+    "clean": "rm -rf ./build",
     "build": "react-scripts build",
     "build:ci": "CI=yes yarn test && yarn build",
-    "build:pages": "PUBLIC_URL='/carcassonne/' yarn build:ci",
+    "build:pages": "yarn test && yarn run clean && PUBLIC_URL='/carcassonne/' yarn build:ci",
     "test": "yarn lint && tsc",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx --fix --max-warnings 0",
     "format": "prettier -w src"
